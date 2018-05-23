@@ -1,8 +1,7 @@
 
-import lexer from './lexer'
+import Lexer from './Lexer'
 
-setTimeout(() => {
-  const hello = 'jungle'
-  lexer()
-  console.log(hello)
-}, 1000)
+export default function (sourceCode) {
+  const lexer = new Lexer(sourceCode)
+  console.log(lexer)
+}

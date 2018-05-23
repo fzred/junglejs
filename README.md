@@ -1,2 +1,2 @@
 # junglejs
-简易的 JavaScript 解释器
+又一个 JavaScript 解释器

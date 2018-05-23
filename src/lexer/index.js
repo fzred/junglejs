@@ -1,10 +1,3 @@
-/**
- * 词法解析器
- */
-class Lexer {
-  constructor(sourceCode){
-    console.log(sourceCode)
-  }
-}
+import Lexer from './Lexer'
 
 export default Lexer

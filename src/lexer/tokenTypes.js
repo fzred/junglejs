@@ -1,0 +1,32 @@
+export default {
+  ILLEGAL: -2,
+  EOF: -1,
+  LET: 0,
+  IDENTIFIER: 1,
+  ASSIGN_SIGN: 2,
+  PLUS_SIGN: 3,
+  INTEGER: 4,
+  SEMICOLON: 5,
+  IF: 6,
+  ELSE: 7,
+
+  MINUS_SIGN: 8,
+  BANG_SIGN: 9,
+  ASTERISK: 10,
+  SLASH: 11,
+  LT: 12,
+  GT: 13,
+  COMMA: 14,
+
+  FUNCTION: 15,
+  TRUE: 16,
+  FALSE: 17,
+  RETURN: 18,
+
+  LEFT_BRACE: 19,
+  RIGHT_BRACE: 20,
+  EQ: 21,
+  NOT_EQ: 22,
+  LEFT_PARENT: 23,
+  RIGHT_PARENT: 24,
+}

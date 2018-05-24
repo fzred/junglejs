@@ -4,10 +4,109 @@
 import Token from './Token'
 import keywords from './keywords'
 import tokenTypes from './tokenTypes'
+import { verifyIdentify, verifyNumber } from '../utils'
 
 class Lexer {
   constructor(sourceCode) {
     console.log(sourceCode)
+    this.sourceCode = sourceCode
+    this.lineNumber = 0
+    this.position = 0
+    this.char = ''
+    this.tokens = []
+    this.lexing()
+  }
+
+  readChar() {
+    if (this.position >= this.sourceCode.lexing) {
+      this.char = null // 源码读取完毕
+    } else {
+      this.char = this.sourceCode[this.position]
+    }
+    this.position++
+  }
+
+  get nextChar() {
+    if (this.position >= this.sourceCode.lexing) {
+      return null
+    }
+    return this.sourceCode[this.position]
+  }
+
+  /**
+   * 跳过空格及换行
+   */
+  skipSpack() {
+    while (this.char === ' ' || this.char === '\n') {
+      if (this.char === '\n') {
+        this.lineNumber++
+      }
+      this.readChar()
+    }
+  }
+
+  createKeywordToken(identify) {
+    switch (identify) {
+      case 'const':
+        return new Token(tokenTypes.CONST, identify, this.lineNumber)
+      case 'let':
+        return new Token(tokenTypes.LET, identify, this.lineNumber)
+      case 'if':
+        return new Token(tokenTypes.IF, identify, this.lineNumber)
+      case 'else':
+        return new Token(tokenTypes.ELSE, identify, this.lineNumber)
+      case 'function':
+        return new Token(tokenTypes.FUNCTION, identify, this.lineNumber)
+      // TODO
+      default:
+        return new Token(tokenTypes.ILLEGAL, identify, this.lineNumber)
+    }
+  }
+
+  nextToken() {
+    this.readChar()
+    this.skipSpack()
+    switch (this.char) {
+      case '=':
+        return new Token(tokenTypes.ASSIGN_SIGN, '=', this.lineNumber)
+      case '+':
+        return new Token(tokenTypes.PLUS_SIGN, '+', this.lineNumber)
+      // TODO 
+      default:
+        let identify = this.char
+        if (verifyNumber(identify)) {
+          while (verifyNumber(identify + this.nextChar)) {
+            this.readChar()
+            identify += this.char
+          }
+          return new Token(tokenTypes.NUMBER, identify, this.lineNumber)
+        } else if (verifyIdentify(identify)) {
+          while (verifyIdentify(identify + this.nextChar)) {
+            this.readChar()
+            identify += this.char
+          }
+          if (identify in keywords) {
+            // TODO 关键字处理
+            return createKeywordToken(identify)
+          }
+          return new Token(tokenTypes.IDENTIFIER, identify, this.lineNumber)
+        } else {
+          return new Token(tokenTypes.ILLEGAL, identify, this.lineNumber)
+        }
+    }
+  }
+
+  lexing() {
+    let token
+
+    do {
+      token = this.nextToken()
+      this.tokens.push(token)
+    } while (token.tokenType !== tokenTypes.ILLEGAL
+      && token.tokenType !== tokenTypes.EOF)
+
+    console.log(this.tokens)
+    debugger
   }
 }
 

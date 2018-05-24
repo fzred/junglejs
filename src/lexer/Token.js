@@ -5,3 +5,5 @@ class Token {
     this.lineNumber = lineNumber
   }
 }
+
+export default Token

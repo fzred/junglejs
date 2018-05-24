@@ -2,7 +2,5 @@
 require('babel-core/register')
 require("babel-core").transform()
 const jungle = require('./src').default
-jungle(`
-const a = 1
-console.log(a)
+jungle(`const a = 100 + 122
 `)

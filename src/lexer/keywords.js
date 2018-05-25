@@ -35,6 +35,7 @@ export default [
   'byte',
   'char',
   'class',
+  'let',
   'const',
   'debugger',
   'double',

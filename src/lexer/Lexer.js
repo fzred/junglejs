@@ -37,10 +37,7 @@ class Lexer {
    * 跳过空格及换行
    */
   skipSpack() {
-    while (this.char === ' ' || this.char === '\n') {
-      if (this.char === '\n') {
-        this.lineNumber++
-      }
+    while (this.char === ' ') {
       this.readChar()
     }
   }
@@ -67,6 +64,11 @@ class Lexer {
     this.readChar()
     this.skipSpack()
     switch (this.char) {
+      case '\n':
+        this.lineNumber++
+        return new Token(tokenTypes.NEWLINE, '\n', this.lineNumber)
+      case ';':
+        return new Token(tokenTypes.SEMICOLON, ';', this.lineNumber)
       case '=':
         return new Token(tokenTypes.ASSIGN_SIGN, '=', this.lineNumber)
       case '+':
@@ -89,7 +91,7 @@ class Lexer {
             identify += this.char
           }
           if (keywords.indexOf(identify) > -1) {
-            // TODO 关键字处理
+            // 关键字处理
             return this.createKeywordToken(identify)
           }
           return new Token(tokenTypes.IDENTIFIER, identify, this.lineNumber)
@@ -101,14 +103,11 @@ class Lexer {
 
   lexing() {
     let token
-
     do {
       token = this.nextToken()
       this.tokens.push(token)
     } while (token.tokenType !== tokenTypes.ILLEGAL
       && token.tokenType !== tokenTypes.EOF)
-
-    console.log(JSON.stringify(this.tokens, null, 2))
   }
 }
 

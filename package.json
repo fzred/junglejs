@@ -4,6 +4,7 @@
   "description": "简易的 JavaScript 解释器",
   "main": "index.js",
   "scripts": {
+    "compile": "babel src --out-dir .compiled --source-maps --watch",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

@@ -18,7 +18,7 @@ class Lexer {
   }
 
   readChar() {
-    if (this.position >= this.sourceCode.lexing) {
+    if (this.position >= this.sourceCode.length) {
       this.char = null // 源码读取完毕
     } else {
       this.char = this.sourceCode[this.position]
@@ -27,7 +27,7 @@ class Lexer {
   }
 
   get nextChar() {
-    if (this.position >= this.sourceCode.lexing) {
+    if (this.position >= this.sourceCode.length) {
       return null
     }
     return this.sourceCode[this.position]
@@ -74,6 +74,9 @@ class Lexer {
       // TODO 
       default:
         let identify = this.char
+        if (identify === null) {
+          return new Token(tokenTypes.EOF, '', this.lineNumber)
+        }
         if (verifyNumber(identify)) {
           while (verifyNumber(identify + this.nextChar)) {
             this.readChar()
@@ -85,9 +88,9 @@ class Lexer {
             this.readChar()
             identify += this.char
           }
-          if (identify in keywords) {
+          if (keywords.indexOf(identify) > -1) {
             // TODO 关键字处理
-            return createKeywordToken(identify)
+            return this.createKeywordToken(identify)
           }
           return new Token(tokenTypes.IDENTIFIER, identify, this.lineNumber)
         } else {
@@ -105,8 +108,7 @@ class Lexer {
     } while (token.tokenType !== tokenTypes.ILLEGAL
       && token.tokenType !== tokenTypes.EOF)
 
-    console.log(this.tokens)
-    debugger
+    console.log(JSON.stringify(this.tokens, null, 2))
   }
 }
 

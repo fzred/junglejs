@@ -8,7 +8,17 @@
       "type": "node",
       "request": "launch",
       "name": "Debug",
-      "program": "${workspaceFolder}/debug.js"
+      "runtimeExecutable": "${workspaceRoot}/node_modules/.bin/babel-node",
+      "program": "${workspaceFolder}/test/debug-src.js"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Compiled",
+      "program": "${workspaceRoot}/test/debug-compiled.js",
+      "outFiles": [
+        "${workspaceRoot}/.compiled/**/*.js",
+      ]
     }
   ]
 }

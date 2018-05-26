@@ -4,6 +4,15 @@ export class Expression {
 }
 
 export class InfixExpression extends Expression {
+  constructor(props) {
+    super(props)
+    this.token = props.token
+    this.leftExpression = props.leftExpression
+    this.rightExpression = props.rightExpression
+    this.operator = props.operator
+    this.value = ''
+    this.type = 'InfixExpression'
+  }
 }
 
 export class Identify extends Expression {

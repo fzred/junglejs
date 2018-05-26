@@ -68,11 +68,25 @@ class Lexer {
         this.lineNumber++
         return new Token(tokenTypes.NEWLINE, '\n', this.lineNumber)
       case ';':
-        return new Token(tokenTypes.SEMICOLON, ';', this.lineNumber)
+        return new Token(tokenTypes.SEMICOLON, this.char, this.lineNumber)
       case '=':
-        return new Token(tokenTypes.ASSIGN_SIGN, '=', this.lineNumber)
+        return new Token(tokenTypes.ASSIGN_SIGN, this.char, this.lineNumber)
       case '+':
-        return new Token(tokenTypes.PLUS_SIGN, '+', this.lineNumber)
+        return new Token(tokenTypes.PLUS_SIGN, this.char, this.lineNumber)
+      case '-':
+        return new Token(tokenTypes.PLUS_SIGN, this.char, this.lineNumber)
+      case '/':
+        return new Token(tokenTypes.PLUS_SIGN, this.char, this.lineNumber)
+      case '*':
+        return new Token(tokenTypes.PLUS_SIGN, this.char, this.lineNumber)
+      case '(':
+        return new Token(tokenTypes.LEFT_PARENT, this.char, this.lineNumber)
+      case ')':
+        return new Token(tokenTypes.RIGHT_PARENT, this.char, this.lineNumber)
+      case '<':
+        return new Token(tokenTypes.LT, this.char, this.lineNumber)
+      case '>':
+        return new Token(tokenTypes.GT, this.char, this.lineNumber)
       // TODO 
       default:
         let identify = this.char

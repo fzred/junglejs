@@ -34,3 +34,15 @@ export class NumberLiteral extends Expression {
     this.type = 'NumberLiteral'
   }
 }
+
+
+export class StringLiteral extends Expression {
+  constructor(props) {
+    super(props)
+    this.token = props.token
+    this.literal = props.literal
+    this.value = String(props.literal)
+    this.type = 'StringLiteral'
+  }
+}
+

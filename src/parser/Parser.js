@@ -9,6 +9,7 @@ import {
   Expression,
   Identify,
   NumberLiteral,
+  StringLiteral,
   InfixExpression,
 } from './Expression'
 
@@ -48,6 +49,12 @@ class Parser {
       },
       [tokenTypes.NUMBER](curToken) {
         return new NumberLiteral({
+          toekn: curToken.token,
+          literal: curToken.literal,
+        })
+      },
+      [tokenTypes.STRING](curToken) {
+        return new StringLiteral({
           toekn: curToken.token,
           literal: curToken.literal,
         })

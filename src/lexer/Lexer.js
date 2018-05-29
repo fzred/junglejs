@@ -60,6 +60,24 @@ class Lexer {
     }
   }
 
+  /**
+   * 读取字符串 Token
+   * @param {*} c ‘ or "
+   */
+  readStringToken(c) {
+    let str = ''
+    this.readChar()
+    while (this.char !== c && this.char !== null) {
+      str += this.char
+      this.readChar()
+    }
+    if (this.char !== c) {
+      return new Token(tokenTypes.ILLEGAL, '', this.lineNumber)
+    }
+
+    return new Token(tokenTypes.STRING, str, this.lineNumber)
+  }
+
   nextToken() {
     this.readChar()
     this.skipSpack()
@@ -69,8 +87,23 @@ class Lexer {
         return new Token(tokenTypes.NEWLINE, '\n', this.lineNumber)
       case ';':
         return new Token(tokenTypes.SEMICOLON, this.char, this.lineNumber)
+      case '"':
+      case '\'':
+        return this.readStringToken(this.char)
       case '=':
-        return new Token(tokenTypes.ASSIGN_SIGN, this.char, this.lineNumber)
+        if (this.nextChar === '=') {
+          this.readChar()
+          return new Token(tokenTypes.EQ, '==', this.lineNumber)
+        } else {
+          return new Token(tokenTypes.ASSIGN_SIGN, this.char, this.lineNumber)
+        }
+      case '!':
+        if (this.nextChar === '=') {
+          this.readChar()
+          return new Token(tokenTypes.NOT_EQ, '!=', this.lineNumber)
+        } else {
+          return new Token(tokenTypes.BANG_SIGN, this.char, this.lineNumber)
+        }
       case '+':
         return new Token(tokenTypes.PLUS_SIGN, this.char, this.lineNumber)
       case '-':
@@ -87,6 +120,10 @@ class Lexer {
         return new Token(tokenTypes.LT, this.char, this.lineNumber)
       case '>':
         return new Token(tokenTypes.GT, this.char, this.lineNumber)
+      case '{':
+        return new Token(tokenTypes.LEFT_BRACE, this.char, this.lineNumber)
+      case '}':
+        return new Token(tokenTypes.RIGHT_BRACE, this.char, this.lineNumber)
       // TODO 
       default:
         let identify = this.char

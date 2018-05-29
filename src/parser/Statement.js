@@ -20,6 +20,16 @@ export class ConstStatement extends LetStatement {
   }
 }
 
+export class IfStatement extends LetStatement {
+  constructor(props) {
+    super(props)
+    this.block = props.block
+    this.condition = props.condition
+    this.consequence = props.consequence
+    this.type = 'IfStatement'
+  }
+}
+
 export class Pargarm {
   constructor() {
     this.token = 'Pargarm'

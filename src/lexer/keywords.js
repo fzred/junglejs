@@ -29,6 +29,8 @@ export default [
   'void',
   'while',
   'with',
+  'true',
+  'false',
 
   'abstract',
   'boolean',

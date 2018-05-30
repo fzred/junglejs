@@ -54,6 +54,9 @@ class Lexer {
         return new Token(tokenTypes.ELSE, identify, this.lineNumber)
       case 'function':
         return new Token(tokenTypes.FUNCTION, identify, this.lineNumber)
+      case 'true':
+      case 'false':
+        return new Token(tokenTypes.BOOLEAN, identify, this.lineNumber)
       // TODO
       default:
         return new Token(tokenTypes.ILLEGAL, identify, this.lineNumber)

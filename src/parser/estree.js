@@ -22,6 +22,7 @@ export class BlockStatement extends Statement {
   constructor(props) {
     super(props)
     this.body = props.body
+    this.type = 'BlockStatement'
   }
 }
 
@@ -53,6 +54,7 @@ export class Pargarm {
 
 export class FunctionExpression {
   constructor(props) {
+    this.type = 'FunctionExpression'
     this.params = props.params
     this.body = props.body
   }
@@ -61,6 +63,7 @@ export class FunctionExpression {
 export class FunctionDeclaration extends FunctionExpression {
   constructor(props) {
     super(props)
+    this.type = 'FunctionDeclaration'
     this.id = props.id
   }
 }
@@ -92,24 +95,9 @@ export class Identify extends Expression {
   }
 }
 
-export class NumberLiteral extends Expression {
+export class Literal{
   constructor(props) {
-    super(props)
-    this.token = props.token
-    this.literal = props.literal
-    this.value = Number(props.literal)
-    this.type = 'NumberLiteral'
-  }
+    this.type = 'Literal'
+    this.value = props.value
+  }  
 }
-
-
-export class StringLiteral extends Expression {
-  constructor(props) {
-    super(props)
-    this.token = props.token
-    this.literal = props.literal
-    this.value = String(props.literal)
-    this.type = 'StringLiteral'
-  }
-}
-

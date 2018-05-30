@@ -24,8 +24,8 @@ export default {
   COMMA: 'COMMA',
 
   FUNCTION: 'FUNCTION',
-  TRUE: 16,
-  FALSE: 17,
+  TRUE: 'TRUE',
+  FALSE: 'FALSE',
   RETURN: 'RETURN',
 
   LEFT_BRACE: 'LEFT_BRACE',

@@ -7,11 +7,10 @@ import {
   IfStatement,
   Expression,
   Identify,
-  NumberLiteral,
-  StringLiteral,
   InfixExpression,
   FunctionDeclaration,
   FunctionExpression,
+  Literal,
 } from './estree'
 
 class Parser {
@@ -49,15 +48,18 @@ class Parser {
         })
       },
       [tokenTypes.NUMBER]: () => {
-        return new NumberLiteral({
-          toekn: this.curToken.token,
-          literal: this.curToken.literal,
+        return new Literal({
+          value: Number(this.curToken.literal),
         })
       },
       [tokenTypes.STRING]: () => {
-        return new StringLiteral({
-          toekn: this.curToken.token,
-          literal: this.curToken.literal,
+        return new Literal({
+          value: String(this.curToken.literal),
+        })
+      },
+      [tokenTypes.BOOLEAN]: () => {
+        return new Literal({
+          value: this.curToken.literal === 'true',
         })
       },
       [tokenTypes.FUNCTION]: () => {

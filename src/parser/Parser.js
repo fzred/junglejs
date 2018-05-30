@@ -3,6 +3,8 @@ import {
   Pargarm,
   LetStatement,
   ConstStatement,
+  BlockStatement,
+  IfStatement,
 } from './Statement'
 
 import {
@@ -163,15 +165,65 @@ class Parser {
     })
   }
 
+  parseIfStatement() {
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    this.readToken()
+    const test = this.parseExpression(0)
+    if (this.nextToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+
+    const consequence = this.parseBlockStatement()
+
+    // TODO else if
+    const alternate = null
+
+    return new IfStatement({
+      test,
+      consequence,
+      alternate,
+    })
+  }
+
+  parseBlockStatement() {
+    const statements = []
+    this.readToken()
+    while (this.nextToken.tokenType !== tokenTypes.RIGHT_BRACE) {
+      const statement = this.parseStatement()
+      if (statement !== null) {
+        statements.push(statement)
+      }
+    }
+    this.readToken()
+    this.readToken()
+    return new BlockStatement({
+      body: statements
+    })
+  }
+
   parseStatement() {
     switch (this.curToken.tokenType) {
       case tokenTypes.LET:
         return this.parseLetStatement()
       case tokenTypes.CONST:
         return this.parseLetStatement(true)
+      case tokenTypes.SEMICOLON:
       case tokenTypes.NEWLINE:
         this.readToken()
         return null
+      case tokenTypes.IF:
+        return this.parseIfStatement()
     }
     throw 'syntax error'
   }

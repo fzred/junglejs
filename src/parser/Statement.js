@@ -13,6 +13,13 @@ export class LetStatement extends Statement {
   }
 }
 
+export class BlockStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.body = props.body
+  }
+}
+
 export class ConstStatement extends LetStatement {
   constructor(props) {
     super(props)
@@ -23,9 +30,9 @@ export class ConstStatement extends LetStatement {
 export class IfStatement extends LetStatement {
   constructor(props) {
     super(props)
-    this.block = props.block
-    this.condition = props.condition
+    this.test = props.test
     this.consequence = props.consequence
+    this.alternate = props.alternate
     this.type = 'IfStatement'
   }
 }

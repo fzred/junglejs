@@ -21,12 +21,12 @@ export default {
   SLASH: 11,
   LT: 12,
   GT: 13,
-  COMMA: 14,
+  COMMA: 'COMMA',
 
-  FUNCTION: 15,
+  FUNCTION: 'FUNCTION',
   TRUE: 16,
   FALSE: 17,
-  RETURN: 18,
+  RETURN: 'RETURN',
 
   LEFT_BRACE: 'LEFT_BRACE',
   RIGHT_BRACE: 'RIGHT_BRACE',

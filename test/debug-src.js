@@ -3,7 +3,10 @@ const jungle = require('../src').default
 // let b = a + 300
 // `)
 jungle(`
-if(b=='11'){
-  const a = 'fff'
+const f = function(hello){
+  function f2(a,b,c){
+    const s = a+b+c
+    const c = a+b+c
+  }
 }
 `)

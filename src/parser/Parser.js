@@ -5,15 +5,14 @@ import {
   ConstStatement,
   BlockStatement,
   IfStatement,
-} from './Statement'
-
-import {
   Expression,
   Identify,
   NumberLiteral,
   StringLiteral,
   InfixExpression,
-} from './Expression'
+  FunctionDeclaration,
+  FunctionExpression,
+} from './estree'
 
 class Parser {
   constructor(lexer) {
@@ -43,24 +42,27 @@ class Parser {
 
   registerPrefixParseFns() {
     this.prefixParseFns = {
-      [tokenTypes.IDENTIFIER](curToken) {
+      [tokenTypes.IDENTIFIER]: () => {
         return new Identify({
-          toekn: curToken.toekn,
-          literal: curToken.literal,
+          toekn: this.curToken.toekn,
+          literal: this.curToken.literal,
         })
       },
-      [tokenTypes.NUMBER](curToken) {
+      [tokenTypes.NUMBER]: () => {
         return new NumberLiteral({
-          toekn: curToken.token,
-          literal: curToken.literal,
+          toekn: this.curToken.token,
+          literal: this.curToken.literal,
         })
       },
-      [tokenTypes.STRING](curToken) {
+      [tokenTypes.STRING]: () => {
         return new StringLiteral({
-          toekn: curToken.token,
-          literal: curToken.literal,
+          toekn: this.curToken.token,
+          literal: this.curToken.literal,
         })
       },
+      [tokenTypes.FUNCTION]: () => {
+        return this.parseFunctionExpression()
+      }
     }
   }
 
@@ -115,7 +117,7 @@ class Parser {
   }
 
   parseExpression(precedence) {
-    let letExp = this.prefixParseFns[this.curToken.tokenType](this.curToken)
+    let letExp = this.prefixParseFns[this.curToken.tokenType]()
     while (this.nextToken.tokenType !== tokenTypes.EOF
       && this.nextTokenPrecedence > precedence
       && !this.isNEWLINE) {
@@ -165,6 +167,48 @@ class Parser {
     })
   }
 
+  parseFunctionExpression() {
+    const props = {
+      id: null,
+      body: [],
+      params: [],
+    }
+    const parseIDENTIFIER = this.prefixParseFns[tokenTypes.IDENTIFIER]
+    if (this.nextToken.tokenType === tokenTypes.IDENTIFIER) {
+      this.readToken()
+      props.id = parseIDENTIFIER()
+    }
+
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    while (this.nextToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+      this.readToken()
+      props.params.push(parseIDENTIFIER())
+      if (this.nextToken.tokenType === tokenTypes.COMMA) {
+        this.readToken()
+        if (this.nextToken.tokenType === tokenTypes.RIGHT_PARENT) {
+          // TODO 语法错误处理
+          throw 'syntax error'
+        }
+      }
+    }
+    this.readToken()
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    props.body = this.parseBlockStatement()
+
+    if (props.id) {
+      return new FunctionDeclaration(props)
+    }
+    return new FunctionExpression(props)
+  }
+
   parseIfStatement() {
     if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
       // TODO 语法错误处理
@@ -186,8 +230,21 @@ class Parser {
 
     const consequence = this.parseBlockStatement()
 
-    // TODO else if
-    const alternate = null
+    let alternate = null
+    if (this.curToken.tokenType === tokenTypes.ELSE) {
+      // parse else if
+      if (this.nextToken.tokenType === tokenTypes.IF) {
+        this.readToken()
+        alternate = this.parseIfStatement()
+      } else {  // parse else
+        if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+          // TODO 语法错误处理
+          throw 'syntax error'
+        }
+        this.readToken()
+        alternate = this.parseBlockStatement()
+      }
+    }
 
     return new IfStatement({
       test,
@@ -224,10 +281,11 @@ class Parser {
         return null
       case tokenTypes.IF:
         return this.parseIfStatement()
+      case tokenTypes.FUNCTION:
+        return this.parseFunctionExpression()
     }
     throw 'syntax error'
   }
-
 
   parse() {
     do {

@@ -12,8 +12,13 @@ export default {
   STRING: 'STRING',
   EQ: 'EQ',
   NOT_EQ: 'NOT_EQ',
-  IF: 6,
-  ELSE: 7,
+  IF: 'IF',
+  ELSE: 'ELSE',
+
+  FOR: 'FOR',
+  IN: 'IN',
+
+  incDec: 'incDec',
 
   MINUS_SIGN: 8,
   BANG_SIGN: 9,

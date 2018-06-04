@@ -11,6 +11,8 @@ import {
   FunctionDeclaration,
   FunctionExpression,
   Literal,
+  ForStatement,
+  ExpressionStatement,
 } from './estree'
 
 class Parser {
@@ -128,6 +130,14 @@ class Parser {
       letExp = infix(letExp, this)
     }
     return letExp
+  }
+
+  parseExpressionStatement() {
+    const expression = this.parseExpression(0)
+    this.readToken()
+    return new ExpressionStatement({
+      expression,
+    })
   }
 
   parseLetStatement(isConst = false) {
@@ -271,6 +281,55 @@ class Parser {
     })
   }
 
+  parseForExpression() {
+    const props = {
+      init: null,
+      test: null,
+      update: null,
+      body: [],
+    }
+
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    this.readToken()
+    if (this.curToken !== tokenTypes.SEMICOLON) {
+      props.test = this.parseStatement()
+    }
+    if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    if (this.curToken !== tokenTypes.SEMICOLON) {
+      props.test = this.parseExpression(0)
+      this.readToken()
+    }
+    if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    if (this.curToken !== tokenTypes.RIGHT_PARENT) {
+      props.update = this.parseStatement()
+    }
+    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    props.body = this.parseBlockStatement()
+
+    return new ForStatement(props)
+  }
+
   parseStatement() {
     switch (this.curToken.tokenType) {
       case tokenTypes.LET:
@@ -285,6 +344,10 @@ class Parser {
         return this.parseIfStatement()
       case tokenTypes.FUNCTION:
         return this.parseFunctionExpression()
+      case tokenTypes.FOR:
+        return this.parseForExpression()
+      default:
+        return this.parseExpressionStatement()
     }
     throw 'syntax error'
   }

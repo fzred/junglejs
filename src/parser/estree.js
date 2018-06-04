@@ -33,7 +33,7 @@ export class ConstStatement extends LetStatement {
   }
 }
 
-export class IfStatement extends LetStatement {
+export class IfStatement extends Statement {
   constructor(props) {
     super(props)
     this.test = props.test
@@ -43,7 +43,16 @@ export class IfStatement extends LetStatement {
   }
 }
 
-
+export class ForStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.test = props.test
+    this.init = props.init
+    this.update = props.update
+    this.body = props.body
+    this.type = 'ForStatement'
+  }
+}
 
 export class Pargarm {
   constructor() {
@@ -73,6 +82,24 @@ export class Expression {
   }
 }
 
+export class AssignmentExpression extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'AssignmentExpression'
+    this.operator = props.operator
+    this.left = props.left
+    this.right = props.right
+  }
+}
+
+export class ExpressionStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'ExpressionStatement'
+    this.expression = props.expression
+  }
+}
+
 export class InfixExpression extends Expression {
   constructor(props) {
     super(props)
@@ -95,9 +122,9 @@ export class Identify extends Expression {
   }
 }
 
-export class Literal{
+export class Literal {
   constructor(props) {
     this.type = 'Literal'
     this.value = props.value
-  }  
+  }
 }

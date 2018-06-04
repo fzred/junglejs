@@ -112,6 +112,10 @@ class Lexer {
           return new Token(tokenTypes.BANG_SIGN, this.char, this.lineNumber)
         }
       case '+':
+        if (this.nextChar === '+') {
+          this.readChar()
+          return new Token(tokenTypes.NOT_EQ, '!=', this.lineNumber)
+        }
         return new Token(tokenTypes.PLUS_SIGN, this.char, this.lineNumber)
       case '-':
         return new Token(tokenTypes.PLUS_SIGN, this.char, this.lineNumber)

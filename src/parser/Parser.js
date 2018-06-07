@@ -13,6 +13,7 @@ import {
   Literal,
   ForStatement,
   ExpressionStatement,
+  AssignmentExpression,
 } from './estree'
 
 class Parser {
@@ -23,15 +24,16 @@ class Parser {
     this.curToken = null
     // 运算符 优先级
     this.precedences = {
-      [tokenTypes.EQ]: 1,
-      [tokenTypes.NOT_EQ]: 1,
-      [tokenTypes.LT]: 2,
-      [tokenTypes.GT]: 2,
-      [tokenTypes.PLUS_SIGN]: 3,
-      [tokenTypes.MINUS_SIGN]: 3,
-      [tokenTypes.ASTERISK]: 4,
-      [tokenTypes.SLASH]: 4,
-      [tokenTypes.LEFT_PARENT]: 5,
+      [tokenTypes.ASSIGN_SIGN]: 1,
+      [tokenTypes.EQ]: 2,
+      [tokenTypes.NOT_EQ]: 2,
+      [tokenTypes.LT]: 3,
+      [tokenTypes.GT]: 3,
+      [tokenTypes.PLUS_SIGN]: 4,
+      [tokenTypes.MINUS_SIGN]: 4,
+      [tokenTypes.ASTERISK]: 5,
+      [tokenTypes.SLASH]: 5,
+      [tokenTypes.LEFT_PARENT]: 6,
     }
 
     this.registerPrefixParseFns()
@@ -70,6 +72,17 @@ class Parser {
     }
   }
 
+  parseAssignmentExpression(leftExp) {
+    const props = {
+      left: leftExp,
+      operator: this.curToken,
+      right: null,
+    }
+    this.readToken()
+    props.right = this.parseExpression(0)
+    return new AssignmentExpression(props)
+  }
+
   registerInfixParseFns() {
     function infixParse(leftExp, caller) {
       const operator = caller.curToken
@@ -94,6 +107,7 @@ class Parser {
       [tokenTypes.GT]: infixParse,
       [tokenTypes.EQ]: infixParse,
       [tokenTypes.NOT_EQ]: infixParse,
+      [tokenTypes.ASSIGN_SIGN]: this.parseAssignmentExpression.bind(this),
       [tokenTypes.LEFT_PARENT]: callParse,
     }
   }
@@ -360,8 +374,9 @@ class Parser {
       }
     } while (this.curToken.tokenType !== tokenTypes.EOF
       && this.curToken.tokenType !== tokenTypes.ILLEGAL)
-    // console.log(this.pararm.statements)
-    console.log(JSON.stringify(this.pararm.statements, null, 2))
+    console.log(this.pararm.statements)
+    // console.log(JSON.stringify(this.pararm.statements, null, 2))
+    debugger
   }
 
 }

@@ -92,6 +92,17 @@ export class AssignmentExpression extends Statement {
   }
 }
 
+export class UpdateExpression extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'UpdateExpression'
+    this.operator = props.operator
+    this.argument = props.argument
+    this.prefix = props.prefix
+  }
+}
+
+
 export class ExpressionStatement extends Statement {
   constructor(props) {
     super(props)

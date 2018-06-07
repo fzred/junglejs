@@ -312,7 +312,7 @@ class Parser {
       throw 'syntax error'
     }
     this.readToken()
-    if (this.curToken !== tokenTypes.RIGHT_PARENT) {
+    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
       props.update = this.parseStatement()
     }
     if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
@@ -320,7 +320,7 @@ class Parser {
       throw 'syntax error'
     }
     this.readToken()
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+    if (this.curToken.tokenType !== tokenTypes.LEFT_BRACE) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -360,7 +360,8 @@ class Parser {
       }
     } while (this.curToken.tokenType !== tokenTypes.EOF
       && this.curToken.tokenType !== tokenTypes.ILLEGAL)
-    console.log(this.pararm.statements)
+    // console.log(this.pararm.statements)
+    console.log(JSON.stringify(this.pararm.statements, null, 2))
   }
 
 }

@@ -3,9 +3,34 @@
  * https://github.com/estree/estree/blob/master/es5.md
  */
 
+class Node {
+  constructor() {
+    this.type = 'Node'
+    this.loc = null
+  }
+}
+
 export class Statement {
   constructor(props) {
     this.type = 'Statement'
+  }
+}
+
+export class VariableDeclaration extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'VariableDeclaration'
+    this.kind = props.kind
+    this.declarations = props.declarations
+  }
+}
+
+export class VariableDeclarator extends Node {
+  constructor(props) {
+    super(props)
+    this.type = 'VariableDeclarator'
+    this.id = props.id
+    this.init = props.init
   }
 }
 

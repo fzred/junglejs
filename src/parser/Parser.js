@@ -110,7 +110,7 @@ class Parser {
           value: caller.curToken.literal === 'true',
         })
       },
-      [tokenTypes.FUNCTION]: caller.parseFunctionExpression,
+      [tokenTypes.FUNCTION]: caller.parseFunctionExpression.bind(caller),
     }
   }
 

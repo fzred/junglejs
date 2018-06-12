@@ -15,6 +15,7 @@ import {
   ExpressionStatement,
   AssignmentExpression,
   UpdateExpression,
+  CallExpression,
 } from './estree'
 
 class Parser {
@@ -83,12 +84,11 @@ class Parser {
       },
       [tokenTypes.LEFT_PARENT]() {
         caller.readToken()
-        const exp = caller.parseExpression(0)
+        const exp = caller.parseExpression()
         if (caller.nextToken.tokenType !== tokenTypes.RIGHT_PARENT) {
           // TODO 语法错误处理
           throw 'syntax error'
         }
-        caller.readToken()
         caller.readToken()
         return exp
       },
@@ -118,12 +118,13 @@ class Parser {
       right: null,
     }
     this.readToken()
-    props.right = this.parseExpression(0)
+    props.right = this.parseExpression()
     return new AssignmentExpression(props)
   }
 
   registerInfixParseFns() {
-    function infixParse(leftExp, caller) {
+    const caller = this
+    function infixParse(leftExp) {
       const operator = caller.curToken.literal
       const precedence = caller.curTokenPrecedence
       caller.readToken()
@@ -134,8 +135,24 @@ class Parser {
         right: rightExp,
       })
     }
-    function callParse(leftExp, caller) {
-
+    function callParse(leftExp) {
+      const argument = []
+      while (caller.nextToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+        caller.readToken()
+        argument.push(caller.parseExpression())
+        if (caller.nextToken.tokenType === tokenTypes.COMMA) {
+          caller.readToken()
+          if (caller.nextToken.tokenType === tokenTypes.RIGHT_PARENT) {
+            // TODO 语法错误处理
+            throw 'syntax error'
+          }
+        }
+      }
+      caller.readToken()
+      return new CallExpression({
+        callee: leftExp,
+        argument,
+      })
     }
     this.infixParseFns = {
       [tokenTypes.PLUS_SIGN]: infixParse,
@@ -173,20 +190,20 @@ class Parser {
       || this.nextToken.tokenType === tokenTypes.SEMICOLON
   }
 
-  parseExpression(precedence) {
+  parseExpression(precedence = 0) {
     let letExp = this.prefixParseFns[this.curToken.tokenType]()
     while (this.nextToken.tokenType !== tokenTypes.EOF
       && this.nextTokenPrecedence > precedence
       && !this.isNEWLINE) {
       const infix = this.infixParseFns[this.nextToken.tokenType]
       this.readToken()
-      letExp = infix(letExp, this)
+      letExp = infix(letExp)
     }
     return letExp
   }
 
   parseExpressionStatement() {
-    const expression = this.parseExpression(0)
+    const expression = this.parseExpression()
     this.readToken()
     return new ExpressionStatement({
       expression,
@@ -210,7 +227,7 @@ class Parser {
     this.readToken()
     this.readToken()
 
-    const expression = this.parseExpression(0)
+    const expression = this.parseExpression()
 
     if (this.nextToken.tokenType !== tokenTypes.EOF
       && !this.isNEWLINE) {
@@ -281,7 +298,7 @@ class Parser {
     }
     this.readToken()
     this.readToken()
-    const test = this.parseExpression(0)
+    const test = this.parseExpression()
     if (this.nextToken.tokenType !== tokenTypes.RIGHT_PARENT) {
       // TODO 语法错误处理
       throw 'syntax error'
@@ -357,7 +374,7 @@ class Parser {
     }
     this.readToken()
     if (this.curToken !== tokenTypes.SEMICOLON) {
-      props.test = this.parseExpression(0)
+      props.test = this.parseExpression()
       this.readToken()
     }
     if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {

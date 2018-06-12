@@ -102,6 +102,14 @@ export class UpdateExpression extends Statement {
   }
 }
 
+export class CallExpression extends Expression {
+  constructor(props) {
+    super(props)
+    this.type = 'CallExpression'
+    this.callee = props.callee
+    this.argument = props.argument
+  }
+}
 
 export class ExpressionStatement extends Statement {
   constructor(props) {

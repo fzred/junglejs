@@ -141,6 +141,12 @@ class Lexer {
         return new Token(tokenTypes.RIGHT_BRACE, this.char, this.lineNumber)
       case ',':
         return new Token(tokenTypes.COMMA, this.char, this.lineNumber)
+      case '[':
+        return new Token(tokenTypes.LEFT_SQUARE_BRACKET, this.char, this.lineNumber)
+      case ']':
+        return new Token(tokenTypes.RIGHT_SQUARE_BRACKET, this.char, this.lineNumber)
+      case '.':
+        return new Token(tokenTypes.DOT, this.char, this.lineNumber)
       // TODO 
       default:
         let identify = this.char

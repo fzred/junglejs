@@ -111,6 +111,16 @@ export class CallExpression extends Expression {
   }
 }
 
+export class MemberExpression extends Expression {
+  constructor(props) {
+    super(props)
+    this.type = 'MemberExpression'
+    this.computed = props.computed
+    this.property = props.property
+    this.object = props.object
+  }
+}
+
 export class ExpressionStatement extends Statement {
   constructor(props) {
     super(props)

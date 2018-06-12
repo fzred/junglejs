@@ -16,6 +16,7 @@ import {
   AssignmentExpression,
   UpdateExpression,
   CallExpression,
+  MemberExpression,
 } from './estree'
 
 class Parser {
@@ -36,6 +37,8 @@ class Parser {
       [tokenTypes.ASTERISK]: 5,
       [tokenTypes.SLASH]: 5,
       [tokenTypes.LEFT_PARENT]: 6,
+      [tokenTypes.DOT]: 6,
+      [tokenTypes.LEFT_SQUARE_BRACKET]: 6,
     }
 
     this.registerPrefixParseFns()
@@ -154,6 +157,40 @@ class Parser {
         argument,
       })
     }
+    function parseMemberExpression(computed, leftExp) {
+      if (computed) {
+        if (caller.nextToken.tokenType === tokenTypes.RIGHT_SQUARE_BRACKET) {
+          // TODO 语法错误处理
+          throw 'syntax error'
+        }
+        caller.readToken()
+        const property = caller.parseExpression()
+        if (caller.nextToken.tokenType !== tokenTypes.RIGHT_SQUARE_BRACKET) {
+          // TODO 语法错误处理
+          throw 'syntax error'
+        }
+        caller.readToken()
+
+        return new MemberExpression({
+          computed,
+          property,
+          object: leftExp,
+        })
+      } else {
+        if (caller.nextToken.tokenType !== tokenTypes.IDENTIFIER) {
+          // TODO 语法错误处理
+          throw 'syntax error'
+        }
+        caller.readToken()
+        const property = caller.prefixParseFns[tokenTypes.IDENTIFIER]()
+
+        return new MemberExpression({
+          computed,
+          property,
+          object: leftExp,
+        })
+      }
+    }
     this.infixParseFns = {
       [tokenTypes.PLUS_SIGN]: infixParse,
       [tokenTypes.MINUS_SIGN]: infixParse,
@@ -165,6 +202,8 @@ class Parser {
       [tokenTypes.NOT_EQ]: infixParse,
       [tokenTypes.ASSIGN_SIGN]: this.parseAssignmentExpression.bind(this),
       [tokenTypes.LEFT_PARENT]: callParse,
+      [tokenTypes.DOT]: parseMemberExpression.bind(null, false),
+      [tokenTypes.LEFT_SQUARE_BRACKET]: parseMemberExpression.bind(null, true),
     }
   }
 

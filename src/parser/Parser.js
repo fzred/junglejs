@@ -7,13 +7,14 @@ import {
   IfStatement,
   Expression,
   Identify,
-  InfixExpression,
+  BinaryExpression,
   FunctionDeclaration,
   FunctionExpression,
   Literal,
   ForStatement,
   ExpressionStatement,
   AssignmentExpression,
+  UpdateExpression,
 } from './estree'
 
 class Parser {
@@ -44,31 +45,69 @@ class Parser {
   }
 
   registerPrefixParseFns() {
+    const caller = this
     this.prefixParseFns = {
-      [tokenTypes.IDENTIFIER]: () => {
+      [tokenTypes.INC_DEC]() {
+        const operator = caller.curToken.literal
+        if (caller.nextToken.tokenType !== tokenTypes.IDENTIFIER) {
+          // TODO 语法错误处理
+          throw 'syntax error'
+        }
+        caller.readToken()
+        return new UpdateExpression({
+          prefix: true,
+          operator,
+          argument: {
+            type: 'Identifier',
+            name: caller.curToken.literal,
+          }
+        })
+      },
+      [tokenTypes.IDENTIFIER]() {
+        if (caller.nextToken.tokenType === tokenTypes.INC_DEC) {
+          const name = caller.curToken.literal
+          caller.readToken()
+          return new UpdateExpression({
+            prefix: false,
+            operator: caller.curToken.literal,
+            argument: {
+              type: 'Identifier',
+              name,
+            }
+          })
+        }
         return new Identify({
-          toekn: this.curToken.toekn,
-          literal: this.curToken.literal,
+          toekn: caller.curToken.token,
+          literal: caller.curToken.literal,
         })
       },
-      [tokenTypes.NUMBER]: () => {
+      [tokenTypes.LEFT_PARENT]() {
+        caller.readToken()
+        const exp = caller.parseExpression(0)
+        if (caller.nextToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+          // TODO 语法错误处理
+          throw 'syntax error'
+        }
+        caller.readToken()
+        caller.readToken()
+        return exp
+      },
+      [tokenTypes.NUMBER]() {
         return new Literal({
-          value: Number(this.curToken.literal),
+          value: Number(caller.curToken.literal),
         })
       },
-      [tokenTypes.STRING]: () => {
+      [tokenTypes.STRING]() {
         return new Literal({
-          value: String(this.curToken.literal),
+          value: String(caller.curToken.literal),
         })
       },
-      [tokenTypes.BOOLEAN]: () => {
+      [tokenTypes.BOOLEAN]() {
         return new Literal({
-          value: this.curToken.literal === 'true',
+          value: caller.curToken.literal === 'true',
         })
       },
-      [tokenTypes.FUNCTION]: () => {
-        return this.parseFunctionExpression()
-      }
+      [tokenTypes.FUNCTION]: caller.parseFunctionExpression,
     }
   }
 
@@ -85,14 +124,14 @@ class Parser {
 
   registerInfixParseFns() {
     function infixParse(leftExp, caller) {
-      const operator = caller.curToken
+      const operator = caller.curToken.literal
       const precedence = caller.curTokenPrecedence
       caller.readToken()
       const rightExp = caller.parseExpression(precedence)
-      return new InfixExpression({
-        leftExpression: leftExp,
+      return new BinaryExpression({
+        left: leftExp,
         operator,
-        rightExpression: rightExp,
+        right: rightExp,
       })
     }
     function callParse(leftExp, caller) {
@@ -310,7 +349,7 @@ class Parser {
     this.readToken()
     this.readToken()
     if (this.curToken !== tokenTypes.SEMICOLON) {
-      props.test = this.parseStatement()
+      props.init = this.parseStatement()
     }
     if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
       // TODO 语法错误处理

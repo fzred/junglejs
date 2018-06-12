@@ -18,7 +18,7 @@ export default {
   FOR: 'FOR',
   IN: 'IN',
 
-  incDec: 'incDec',
+  INC_DEC: 'INC_DEC',
 
   MINUS_SIGN: 8,
   BANG_SIGN: 9,

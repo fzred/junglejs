@@ -111,15 +111,13 @@ export class ExpressionStatement extends Statement {
   }
 }
 
-export class InfixExpression extends Expression {
+export class BinaryExpression extends Expression {
   constructor(props) {
     super(props)
-    this.token = props.token
-    this.leftExpression = props.leftExpression
-    this.rightExpression = props.rightExpression
+    this.left = props.left
+    this.right = props.right
     this.operator = props.operator
-    this.value = ''
-    this.type = 'InfixExpression'
+    this.type = 'BinaryExpression'
   }
 }
 

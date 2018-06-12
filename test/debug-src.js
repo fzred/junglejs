@@ -13,7 +13,5 @@ const jungle = require('../src').default
 // }
 // `)
 jungle(`
-for(let i = 0; i < 10; i=i+1) {
-  const j = i
-}
+1*(2+3)
 `)

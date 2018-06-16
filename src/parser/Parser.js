@@ -17,6 +17,7 @@ import {
   UpdateExpression,
   CallExpression,
   MemberExpression,
+  VariableDeclaration,
 } from './estree'
 
 class Parser {
@@ -286,6 +287,15 @@ class Parser {
       identify,
       expression,
     })
+  }
+
+  parseVariableDeclaration() {
+    const props = {
+      kind: this.curToken.literal,
+      declarations: [],
+    }
+    
+    return new VariableDeclaration(props)
   }
 
   parseFunctionExpression() {

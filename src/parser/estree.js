@@ -151,16 +151,33 @@ export class BinaryExpression extends Expression {
 export class Identifier extends Expression {
   constructor(props) {
     super(props)
-    this.token = props.token
-    this.literal = props.literal
-    this.value = ''
+    this.name = props.name
     this.type = 'Identifier'
   }
 }
 
-export class Literal {
+export class Literal extends Node {
   constructor(props) {
+    super(props)
     this.type = 'Literal'
     this.value = props.value
+  }
+}
+
+export class ObjectExpression extends Expression {
+  constructor(props) {
+    super(props)
+    this.type = 'ObjectExpression'
+    this.properties = props.properties
+  }
+}
+
+export class Property extends Node  {
+  constructor(props) {
+    super(props)
+    this.type = 'Property'
+    this.key = props.key
+    this.value = props.value
+    this.kind = props.kind // "init" | "get" | "set"
   }
 }

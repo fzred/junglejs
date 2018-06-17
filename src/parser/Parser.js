@@ -18,6 +18,8 @@ import {
   MemberExpression,
   VariableDeclaration,
   VariableDeclarator,
+  ObjectExpression,
+  Property,
 } from './estree'
 
 class Parser {
@@ -69,21 +71,19 @@ class Parser {
         })
       },
       [tokenTypes.IDENTIFIER]() {
+        const name = caller.curToken.literal
         if (caller.nextToken.tokenType === tokenTypes.INC_DEC) {
-          const name = caller.curToken.literal
           caller.readToken()
           return new UpdateExpression({
             prefix: false,
             operator: caller.curToken.literal,
-            argument: {
-              type: 'Identifier',
+            argument: new Identifier({
               name,
-            }
+            })
           })
         }
         return new Identifier({
-          toekn: caller.curToken.token,
-          literal: caller.curToken.literal,
+          name,
         })
       },
       [tokenTypes.LEFT_PARENT]() {
@@ -112,7 +112,47 @@ class Parser {
         })
       },
       [tokenTypes.FUNCTION]: caller.parseFunctionExpression.bind(caller),
+      [tokenTypes.LEFT_BRACE]: caller.parseObjectExpression.bind(caller),
     }
+  }
+
+  parseObjectExpression() {
+    const props = {
+      properties: []
+    }
+    while (this.nextToken.tokenType !== tokenTypes.RIGHT_BRACE) {
+      this.readToken()
+      const propertyProps = {
+        key: null,
+        value: null,
+        kind: 'init',
+      }
+      if (this.curToken.tokenType === tokenTypes.STRING
+        || this.curToken.tokenType === tokenTypes.NUMBER) {
+        propertyProps.key = this.prefixParseFns[this.curToken.tokenType]
+      } else {
+        propertyProps.key = new Identifier({
+          name: this.curToken.literal
+        })
+      }
+      if (this.nextToken.tokenType !== tokenTypes.COLON) {
+        // TODO 语法错误处理
+        throw 'syntax error'
+      }
+      this.readToken()
+      this.readToken()
+      propertyProps.value = this.parseExpression()
+      if (this.nextToken.tokenType === tokenTypes.COMMA) {
+        this.readToken()
+      }
+      props.properties.push(new Property(propertyProps))
+    }
+    if (this.nextToken.tokenType !== tokenTypes.RIGHT_BRACE) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    return new ObjectExpression(props)
   }
 
   parseAssignmentExpression(leftExp) {
@@ -472,8 +512,8 @@ class Parser {
       }
     } while (this.curToken.tokenType !== tokenTypes.EOF
       && this.curToken.tokenType !== tokenTypes.ILLEGAL)
-    console.log(this.pararm.statements)
-    // console.log(JSON.stringify(this.pararm.statements, null, 2))
+    // console.log(this.pararm.statements)
+    console.log(JSON.stringify(this.pararm.statements, null, 2))
     debugger
   }
 

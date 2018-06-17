@@ -149,6 +149,8 @@ class Lexer {
         return new Token(tokenTypes.RIGHT_SQUARE_BRACKET, this.char, this.lineNumber)
       case '.':
         return new Token(tokenTypes.DOT, this.char, this.lineNumber)
+      case ':':
+        return new Token(tokenTypes.COLON, this.char, this.lineNumber)
       // TODO 
       default:
         let identifier = this.char

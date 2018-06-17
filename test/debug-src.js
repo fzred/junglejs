@@ -17,7 +17,7 @@ const jungle = require('../src').default
 // `)
 
 jungle(`
-const a = 1,b=2;const d = 3
+{b:1,c:333,const: a = 2}
 `)
 
 // Var  Object Array

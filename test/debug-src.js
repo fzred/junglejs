@@ -12,6 +12,12 @@ const jungle = require('../src').default
 //   }
 // }
 // `)
+// jungle(`
+// a.b.c[d+1](1+2)
+// `)
+
 jungle(`
-1*(2+3)
+const a = 1,b=2;const d = 3
 `)
+
+// Var  Object Array

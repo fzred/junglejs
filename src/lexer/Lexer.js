@@ -4,7 +4,7 @@
 import Token from './Token'
 import keywords from './keywords'
 import tokenTypes from './tokenTypes'
-import { verifyIdentify, verifyNumber } from '../utils'
+import { verifyIdentifier, verifyNumber } from '../utils'
 
 class Lexer {
   constructor(sourceCode) {
@@ -42,28 +42,30 @@ class Lexer {
     }
   }
 
-  createKeywordToken(identify) {
-    switch (identify) {
+  createKeywordToken(identifier) {
+    switch (identifier) {
       case 'const':
-        return new Token(tokenTypes.CONST, identify, this.lineNumber)
+        return new Token(tokenTypes.CONST, identifier, this.lineNumber)
+      case 'var':
+        return new Token(tokenTypes.VAR, identifier, this.lineNumber)
       case 'let':
-        return new Token(tokenTypes.LET, identify, this.lineNumber)
+        return new Token(tokenTypes.LET, identifier, this.lineNumber)
       case 'if':
-        return new Token(tokenTypes.IF, identify, this.lineNumber)
+        return new Token(tokenTypes.IF, identifier, this.lineNumber)
       case 'else':
-        return new Token(tokenTypes.ELSE, identify, this.lineNumber)
+        return new Token(tokenTypes.ELSE, identifier, this.lineNumber)
       case 'function':
-        return new Token(tokenTypes.FUNCTION, identify, this.lineNumber)
+        return new Token(tokenTypes.FUNCTION, identifier, this.lineNumber)
       case 'for':
-        return new Token(tokenTypes.FOR, identify, this.lineNumber)
+        return new Token(tokenTypes.FOR, identifier, this.lineNumber)
       case 'in':
-        return new Token(tokenTypes.IN, identify, this.lineNumber)
+        return new Token(tokenTypes.IN, identifier, this.lineNumber)
       case 'true':
       case 'false':
-        return new Token(tokenTypes.BOOLEAN, identify, this.lineNumber)
+        return new Token(tokenTypes.BOOLEAN, identifier, this.lineNumber)
       // TODO
       default:
-        return new Token(tokenTypes.ILLEGAL, identify, this.lineNumber)
+        return new Token(tokenTypes.ILLEGAL, identifier, this.lineNumber)
     }
   }
 
@@ -149,28 +151,28 @@ class Lexer {
         return new Token(tokenTypes.DOT, this.char, this.lineNumber)
       // TODO 
       default:
-        let identify = this.char
-        if (identify === null) {
+        let identifier = this.char
+        if (identifier === null) {
           return new Token(tokenTypes.EOF, '', this.lineNumber)
         }
-        if (verifyNumber(identify)) {
-          while (verifyNumber(identify + this.nextChar)) {
+        if (verifyNumber(identifier)) {
+          while (verifyNumber(identifier + this.nextChar)) {
             this.readChar()
-            identify += this.char
+            identifier += this.char
           }
-          return new Token(tokenTypes.NUMBER, identify, this.lineNumber)
-        } else if (verifyIdentify(identify)) {
-          while (verifyIdentify(identify + this.nextChar)) {
+          return new Token(tokenTypes.NUMBER, identifier, this.lineNumber)
+        } else if (verifyIdentifier(identifier)) {
+          while (verifyIdentifier(identifier + this.nextChar)) {
             this.readChar()
-            identify += this.char
+            identifier += this.char
           }
-          if (keywords.indexOf(identify) > -1) {
+          if (keywords.indexOf(identifier) > -1) {
             // 关键字处理
-            return this.createKeywordToken(identify)
+            return this.createKeywordToken(identifier)
           }
-          return new Token(tokenTypes.IDENTIFIER, identify, this.lineNumber)
+          return new Token(tokenTypes.IDENTIFIER, identifier, this.lineNumber)
         } else {
-          return new Token(tokenTypes.ILLEGAL, identify, this.lineNumber)
+          return new Token(tokenTypes.ILLEGAL, identifier, this.lineNumber)
         }
     }
   }

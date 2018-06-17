@@ -1,12 +1,11 @@
 import tokenTypes from '../lexer/tokenTypes'
 import {
   Pargarm,
-  LetStatement,
   ConstStatement,
   BlockStatement,
   IfStatement,
   Expression,
-  Identify,
+  Identifier,
   BinaryExpression,
   FunctionDeclaration,
   FunctionExpression,
@@ -18,6 +17,7 @@ import {
   CallExpression,
   MemberExpression,
   VariableDeclaration,
+  VariableDeclarator,
 } from './estree'
 
 class Parser {
@@ -81,7 +81,7 @@ class Parser {
             }
           })
         }
-        return new Identify({
+        return new Identifier({
           toekn: caller.curToken.token,
           literal: caller.curToken.literal,
         })
@@ -225,16 +225,17 @@ class Parser {
     return this.precedences[this.nextToken.tokenType] || 0
   }
 
-  get isNEWLINE() {
-    return this.nextToken.tokenType === tokenTypes.NEWLINE
-      || this.nextToken.tokenType === tokenTypes.SEMICOLON
+  isNewLine(token) {
+    return token.tokenType === tokenTypes.NEWLINE
+      || token.tokenType === tokenTypes.SEMICOLON
+      || token.tokenType === tokenTypes.EFO
   }
 
   parseExpression(precedence = 0) {
     let letExp = this.prefixParseFns[this.curToken.tokenType]()
     while (this.nextToken.tokenType !== tokenTypes.EOF
       && this.nextTokenPrecedence > precedence
-      && !this.isNEWLINE) {
+      && !this.isNewLine(this.nextToken)) {
       const infix = this.infixParseFns[this.nextToken.tokenType]
       this.readToken()
       letExp = infix(letExp)
@@ -250,51 +251,43 @@ class Parser {
     })
   }
 
-  parseLetStatement(isConst = false) {
-    if (this.nextToken.tokenType !== tokenTypes.IDENTIFIER) {
-      // TODO 语法错误处理
-      throw 'syntax error'
-    }
-
-    this.readToken()
-
-    const identify = this.curToken
-    if (this.nextToken.tokenType !== tokenTypes.ASSIGN_SIGN) {
-      // TODO 语法错误处理
-      throw 'syntax error'
-    }
-
-    this.readToken()
-    this.readToken()
-
-    const expression = this.parseExpression()
-
-    if (this.nextToken.tokenType !== tokenTypes.EOF
-      && !this.isNEWLINE) {
-      // TODO 语法错误处理
-      throw 'syntax error'
-    }
-
-    this.readToken()
-
-    if (isConst) {
-      return new ConstStatement({
-        identify,
-        expression,
-      })
-    }
-    return new LetStatement({
-      identify,
-      expression,
-    })
-  }
-
   parseVariableDeclaration() {
     const props = {
       kind: this.curToken.literal,
       declarations: [],
     }
-    
+
+    do {
+      if (this.nextToken.tokenType !== tokenTypes.IDENTIFIER) {
+        // TODO 语法错误处理
+        throw 'syntax error'
+      }
+
+      this.readToken()
+
+      const identifier = this.curToken
+      if (this.nextToken.tokenType !== tokenTypes.ASSIGN_SIGN) {
+        // TODO 语法错误处理
+        throw 'syntax error'
+      }
+
+      this.readToken()
+      this.readToken()
+
+      const expression = this.parseExpression()
+      props.declarations.push(new VariableDeclarator({
+        id: identifier,
+        init: expression,
+      }))
+
+      this.readToken()
+    } while (this.curToken.tokenType === tokenTypes.COMMA)
+
+    if (!this.isNewLine(this.curToken)) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+
     return new VariableDeclaration(props)
   }
 
@@ -452,9 +445,9 @@ class Parser {
   parseStatement() {
     switch (this.curToken.tokenType) {
       case tokenTypes.LET:
-        return this.parseLetStatement()
       case tokenTypes.CONST:
-        return this.parseLetStatement(true)
+      case tokenTypes.VAR:
+        return this.parseVariableDeclaration()
       case tokenTypes.SEMICOLON:
       case tokenTypes.NEWLINE:
         this.readToken()

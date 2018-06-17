@@ -2,6 +2,7 @@ export default {
   ILLEGAL: 'ILLEGAL',
   EOF: 'EOF',
   LET: 'LET',
+  VAR: 'VAR',
   CONST: 'CONST',
   IDENTIFIER: 'IDENTIFIER',
   ASSIGN_SIGN: 'ASSIGN_SIGN',

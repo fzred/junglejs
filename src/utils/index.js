@@ -1,4 +1,4 @@
-export function verifyIdentify(token) {
+export function verifyIdentifier(token) {
   return /^[a-zA-Z$_][a-zA-Z$_0-9]*$/.test(token)
 }
 

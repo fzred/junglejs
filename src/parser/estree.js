@@ -34,27 +34,11 @@ export class VariableDeclarator extends Node {
   }
 }
 
-export class LetStatement extends Statement {
-  constructor(props) {
-    super(props)
-    this.identify = props.identify
-    this.expression = props.expression
-    this.type = 'LetStatement'
-  }
-}
-
 export class BlockStatement extends Statement {
   constructor(props) {
     super(props)
     this.body = props.body
     this.type = 'BlockStatement'
-  }
-}
-
-export class ConstStatement extends LetStatement {
-  constructor(props) {
-    super(props)
-    this.type = 'ConstStatement'
   }
 }
 
@@ -164,13 +148,13 @@ export class BinaryExpression extends Expression {
   }
 }
 
-export class Identify extends Expression {
+export class Identifier extends Expression {
   constructor(props) {
     super(props)
     this.token = props.token
     this.literal = props.literal
     this.value = ''
-    this.type = 'Identify'
+    this.type = 'Identifier'
   }
 }
 

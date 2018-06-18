@@ -20,6 +20,7 @@ import {
   VariableDeclarator,
   ObjectExpression,
   Property,
+  ArrayExpression,
 } from './estree'
 
 class Parser {
@@ -113,6 +114,7 @@ class Parser {
       },
       [tokenTypes.FUNCTION]: caller.parseFunctionExpression.bind(caller),
       [tokenTypes.LEFT_BRACE]: caller.parseObjectExpression.bind(caller),
+      [tokenTypes.LEFT_SQUARE_BRACKET]: caller.parseArrayExpression.bind(caller),
     }
   }
 
@@ -153,6 +155,25 @@ class Parser {
     }
     this.readToken()
     return new ObjectExpression(props)
+  }
+
+  parseArrayExpression() {
+    const elements = []
+    while (this.nextToken.tokenType !== tokenTypes.RIGHT_SQUARE_BRACKET) {
+      this.readToken()
+      elements.push(this.parseExpression())
+      if (this.nextToken.tokenType === tokenTypes.COMMA) {
+        this.readToken()
+      }
+    }
+    if (this.nextToken.tokenType !== tokenTypes.RIGHT_SQUARE_BRACKET) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    return new ArrayExpression({
+      elements,
+    })
   }
 
   parseAssignmentExpression(leftExp) {
@@ -266,8 +287,7 @@ class Parser {
   }
 
   isNewLine(token) {
-    return token.tokenType === tokenTypes.NEWLINE
-      || token.tokenType === tokenTypes.SEMICOLON
+    return token.tokenType === tokenTypes.SEMICOLON
       || token.tokenType === tokenTypes.EFO
   }
 
@@ -420,13 +440,12 @@ class Parser {
   parseBlockStatement() {
     const statements = []
     this.readToken()
-    while (this.nextToken.tokenType !== tokenTypes.RIGHT_BRACE) {
+    while (this.curToken.tokenType !== tokenTypes.RIGHT_BRACE) {
       const statement = this.parseStatement()
       if (statement !== null) {
         statements.push(statement)
       }
     }
-    this.readToken()
     this.readToken()
     return new BlockStatement({
       body: statements
@@ -489,7 +508,6 @@ class Parser {
       case tokenTypes.VAR:
         return this.parseVariableDeclaration()
       case tokenTypes.SEMICOLON:
-      case tokenTypes.NEWLINE:
         this.readToken()
         return null
       case tokenTypes.IF:
@@ -498,6 +516,8 @@ class Parser {
         return this.parseFunctionExpression()
       case tokenTypes.FOR:
         return this.parseForExpression()
+      case tokenTypes.LEFT_BRACE:
+        return this.parseBlockStatement()
       default:
         return this.parseExpressionStatement()
     }

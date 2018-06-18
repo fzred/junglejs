@@ -91,6 +91,7 @@ class Lexer {
     this.readChar()
     this.skipSpack()
     switch (this.char) {
+      case '\r':
       case '\n':
         this.lineNumber++
         return new Token(tokenTypes.NEWLINE, '\n', this.lineNumber)
@@ -183,7 +184,9 @@ class Lexer {
     let token
     do {
       token = this.nextToken()
-      this.tokens.push(token)
+      if (token && token.tokenType !== tokenTypes.NEWLINE) {
+        this.tokens.push(token)
+      }
     } while (token.tokenType !== tokenTypes.ILLEGAL
       && token.tokenType !== tokenTypes.EOF)
   }

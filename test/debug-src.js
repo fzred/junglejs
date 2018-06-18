@@ -16,8 +16,13 @@ const jungle = require('../src').default
 // a.b.c[d+1](1+2)
 // `)
 
-jungle(`
-{b:1,c:333,const: a = 2}
-`)
+// jungle(`
+// ({a:1})
+// `)
+
+// jungle(`
+// [1,2,{a:333}]
+// `)
+
 
 // Var  Object Array

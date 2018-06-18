@@ -181,3 +181,11 @@ export class Property extends Node  {
     this.kind = props.kind // "init" | "get" | "set"
   }
 }
+
+export class ArrayExpression extends Expression {
+  constructor(props) {
+    super(props)
+    this.type = 'ArrayExpression'
+    this.elements = props.elements
+  }
+}

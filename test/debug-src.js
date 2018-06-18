@@ -48,3 +48,18 @@ const jungle = require('../src').default
 
 // `)
 
+// jungle(`
+// debugger;
+// `)
+
+// jungle(`
+// with (window) {
+//   console.log(a)
+// }
+// `)
+// jungle(`
+// function a(){
+
+//   return function(){};;;
+// }
+// `)

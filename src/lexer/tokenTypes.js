@@ -20,7 +20,7 @@ export default {
   IN: 'IN',
 
   INC_DEC: 'INC_DEC',
-  COLON:'COLON',
+  COLON: 'COLON',
 
   DOT: 'DOT',
   LEFT_SQUARE_BRACKET: 'LEFT_SQUARE_BRACKET',
@@ -43,4 +43,7 @@ export default {
   RIGHT_BRACE: 'RIGHT_BRACE',
   LEFT_PARENT: 'LEFT_PARENT',
   RIGHT_PARENT: 'RIGHT_PARENT',
+
+  DEBUGGER: "DEBUGGER",
+  WITH: "WITH",
 }

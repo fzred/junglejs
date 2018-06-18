@@ -205,3 +205,27 @@ export class Directive extends Node {
     this.directive = props.directive
   }
 }
+
+export class DebuggerStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'DebuggerStatement'
+  }
+}
+
+export class WithStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'WithStatement'
+    this.object = props.object
+    this.body = props.body
+  }
+}
+
+export class ReturnStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'ReturnStatement'
+    this.argument = props.argument
+  }
+}

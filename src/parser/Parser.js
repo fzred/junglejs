@@ -21,6 +21,9 @@ import {
   ArrayExpression,
   EmptyStatement,
   Directive,
+  DebuggerStatement,
+  WithStatement,
+  ReturnStatement,
 } from './estree'
 
 class Parser {
@@ -411,6 +414,10 @@ class Parser {
     if (expParseMode) {
       return new FunctionExpression(props)
     }
+    if (!props.id) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
     return new FunctionDeclaration(props)
   }
 
@@ -525,8 +532,63 @@ class Parser {
     return new EmptyStatement({})
   }
 
+  parseDebuggerStatement() {
+    this.readToken()
+    if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+      this.readToken()
+    }
+    return new DebuggerStatement({})
+  }
+
   parseFunctionDeclaration() {
     return this.parseFunctionExpression()
+  }
+
+  parseFunctionDeclaration() {
+    return this.parseFunctionExpression()
+  }
+
+  parseReturnStatement() {
+    // TODO 未限制只能在 function 里使用
+    let argument = null
+    const lineNumber = this.curToken.lineNumber
+    this.readToken()
+    if (!this.isStatementEnd(this.curToken)
+      && lineNumber === this.curToken.lineNumber) {
+        argument = this.parseExpression()
+    }
+    if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+      this.readToken()
+    }
+    return new ReturnStatement({
+      argument
+    })
+  }
+
+  parseWithStatement() {
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    this.readToken()
+    const object = this.parseExpression()
+    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+
+    const body = this.parseBlockStatement()
+
+    return new WithStatement({
+      object,
+      body,
+    })
   }
 
   parseStatement() {
@@ -545,6 +607,12 @@ class Parser {
         return this.parseForExpression()
       case tokenTypes.LEFT_BRACE:
         return this.parseBlockStatement()
+      case tokenTypes.DEBUGGER:
+        return this.parseDebuggerStatement()
+      case tokenTypes.WITH:
+        return this.parseWithStatement()
+      case tokenTypes.RETURN:
+        return this.parseReturnStatement()
       default:
         return this.parseExpressionStatement()
     }

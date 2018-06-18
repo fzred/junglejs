@@ -44,6 +44,12 @@ class Lexer {
 
   createKeywordToken(identifier) {
     switch (identifier) {
+      case 'with':
+        return new Token(tokenTypes.WITH, identifier, this.lineNumber)
+      case 'return':
+        return new Token(tokenTypes.RETURN, identifier, this.lineNumber)
+      case 'debugger':
+        return new Token(tokenTypes.DEBUGGER, identifier, this.lineNumber)
       case 'const':
         return new Token(tokenTypes.CONST, identifier, this.lineNumber)
       case 'var':

@@ -125,11 +125,11 @@ class Lexer {
           this.readChar()
           return new Token(tokenTypes.INC_DEC, '--', this.lineNumber)
         }
-        return new Token(tokenTypes.PLUS_SIGN, this.char, this.lineNumber)
+        return new Token(tokenTypes.MINUS_SIGN, this.char, this.lineNumber)
       case '/':
-        return new Token(tokenTypes.PLUS_SIGN, this.char, this.lineNumber)
+        return new Token(tokenTypes.SLASH, this.char, this.lineNumber)
       case '*':
-        return new Token(tokenTypes.PLUS_SIGN, this.char, this.lineNumber)
+        return new Token(tokenTypes.ASTERISK, this.char, this.lineNumber)
       case '(':
         return new Token(tokenTypes.LEFT_PARENT, this.char, this.lineNumber)
       case ')':

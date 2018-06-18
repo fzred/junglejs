@@ -172,7 +172,7 @@ export class ObjectExpression extends Expression {
   }
 }
 
-export class Property extends Node  {
+export class Property extends Node {
   constructor(props) {
     super(props)
     this.type = 'Property'
@@ -187,5 +187,21 @@ export class ArrayExpression extends Expression {
     super(props)
     this.type = 'ArrayExpression'
     this.elements = props.elements
+  }
+}
+
+export class EmptyStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'EmptyStatement'
+  }
+}
+
+export class Directive extends Node {
+  constructor(props) {
+    super(props)
+    this.type = 'ExpressionStatement'
+    this.expression = props.expression
+    this.directive = props.directive
   }
 }

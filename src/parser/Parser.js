@@ -1,10 +1,8 @@
 import tokenTypes from '../lexer/tokenTypes'
 import {
   Pargarm,
-  ConstStatement,
   BlockStatement,
   IfStatement,
-  Expression,
   Identifier,
   BinaryExpression,
   FunctionDeclaration,
@@ -21,6 +19,8 @@ import {
   ObjectExpression,
   Property,
   ArrayExpression,
+  EmptyStatement,
+  Directive,
 } from './estree'
 
 class Parser {
@@ -47,6 +47,10 @@ class Parser {
 
     this.registerPrefixParseFns()
     this.registerInfixParseFns()
+    this.curParse = {
+      type: '',
+      statements: [],
+    }
     this.pararm = new Pargarm()
     this.readToken()
     this.parse()
@@ -90,11 +94,10 @@ class Parser {
       [tokenTypes.LEFT_PARENT]() {
         caller.readToken()
         const exp = caller.parseExpression()
-        if (caller.nextToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+        if (caller.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
           // TODO 语法错误处理
           throw 'syntax error'
         }
-        caller.readToken()
         return exp
       },
       [tokenTypes.NUMBER]() {
@@ -112,7 +115,7 @@ class Parser {
           value: caller.curToken.literal === 'true',
         })
       },
-      [tokenTypes.FUNCTION]: caller.parseFunctionExpression.bind(caller),
+      [tokenTypes.FUNCTION]: caller.parseFunctionExpression.bind(caller, true),
       [tokenTypes.LEFT_BRACE]: caller.parseObjectExpression.bind(caller),
       [tokenTypes.LEFT_SQUARE_BRACKET]: caller.parseArrayExpression.bind(caller),
     }
@@ -122,8 +125,8 @@ class Parser {
     const props = {
       properties: []
     }
-    while (this.nextToken.tokenType !== tokenTypes.RIGHT_BRACE) {
-      this.readToken()
+    this.readToken()
+    while (this.curToken.tokenType !== tokenTypes.RIGHT_BRACE) {
       const propertyProps = {
         key: null,
         value: null,
@@ -137,40 +140,38 @@ class Parser {
           name: this.curToken.literal
         })
       }
-      if (this.nextToken.tokenType !== tokenTypes.COLON) {
+      this.readToken()
+      if (this.curToken.tokenType !== tokenTypes.COLON) {
         // TODO 语法错误处理
         throw 'syntax error'
       }
       this.readToken()
-      this.readToken()
       propertyProps.value = this.parseExpression()
-      if (this.nextToken.tokenType === tokenTypes.COMMA) {
+      if (this.curToken.tokenType === tokenTypes.COMMA) {
         this.readToken()
       }
       props.properties.push(new Property(propertyProps))
     }
-    if (this.nextToken.tokenType !== tokenTypes.RIGHT_BRACE) {
+    if (this.curToken.tokenType !== tokenTypes.RIGHT_BRACE) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
-    this.readToken()
     return new ObjectExpression(props)
   }
 
   parseArrayExpression() {
     const elements = []
-    while (this.nextToken.tokenType !== tokenTypes.RIGHT_SQUARE_BRACKET) {
-      this.readToken()
+    this.readToken()
+    while (this.curToken.tokenType !== tokenTypes.RIGHT_SQUARE_BRACKET) {
       elements.push(this.parseExpression())
-      if (this.nextToken.tokenType === tokenTypes.COMMA) {
+      if (this.curToken.tokenType === tokenTypes.COMMA) {
         this.readToken()
       }
     }
-    if (this.nextToken.tokenType !== tokenTypes.RIGHT_SQUARE_BRACKET) {
+    if (this.curToken.tokenType !== tokenTypes.RIGHT_SQUARE_BRACKET) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
-    this.readToken()
     return new ArrayExpression({
       elements,
     })
@@ -193,7 +194,7 @@ class Parser {
       const operator = caller.curToken.literal
       const precedence = caller.curTokenPrecedence
       caller.readToken()
-      const rightExp = caller.parseExpression(precedence)
+      const rightExp = caller.parseExpression(precedence, false)
       return new BinaryExpression({
         left: leftExp,
         operator,
@@ -202,18 +203,16 @@ class Parser {
     }
     function callParse(leftExp) {
       const argument = []
-      while (caller.nextToken.tokenType !== tokenTypes.RIGHT_PARENT) {
-        caller.readToken()
+      caller.readToken()
+      while (caller.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
         argument.push(caller.parseExpression())
-        if (caller.nextToken.tokenType === tokenTypes.COMMA) {
-          caller.readToken()
+        if (caller.curToken.tokenType === tokenTypes.COMMA) {
           if (caller.nextToken.tokenType === tokenTypes.RIGHT_PARENT) {
             // TODO 语法错误处理
             throw 'syntax error'
           }
         }
       }
-      caller.readToken()
       return new CallExpression({
         callee: leftExp,
         argument,
@@ -227,11 +226,10 @@ class Parser {
         }
         caller.readToken()
         const property = caller.parseExpression()
-        if (caller.nextToken.tokenType !== tokenTypes.RIGHT_SQUARE_BRACKET) {
+        if (caller.curToken.tokenType !== tokenTypes.RIGHT_SQUARE_BRACKET) {
           // TODO 语法错误处理
           throw 'syntax error'
         }
-        caller.readToken()
 
         return new MemberExpression({
           computed,
@@ -286,44 +284,66 @@ class Parser {
     return this.precedences[this.nextToken.tokenType] || 0
   }
 
-  isNewLine(token) {
+  isStatementEnd(token) {
     return token.tokenType === tokenTypes.SEMICOLON
       || token.tokenType === tokenTypes.EFO
+      || token.tokenType === tokenTypes.RIGHT_BRACE
+      || token.tokenType === tokenTypes.RIGHT_PARENT
   }
 
-  parseExpression(precedence = 0) {
+  parseExpression(precedence = 0, autoReadNext = true) {
     let letExp = this.prefixParseFns[this.curToken.tokenType]()
-    while (this.nextToken.tokenType !== tokenTypes.EOF
+    while (this.curToken.tokenType !== tokenTypes.EOF
+      && this.nextToken.tokenType !== tokenTypes.EOF
       && this.nextTokenPrecedence > precedence
-      && !this.isNewLine(this.nextToken)) {
+      && !this.isStatementEnd(this.nextToken)) {
       const infix = this.infixParseFns[this.nextToken.tokenType]
       this.readToken()
       letExp = infix(letExp)
+    }
+    if (autoReadNext) {
+      this.readToken()
     }
     return letExp
   }
 
   parseExpressionStatement() {
+    let isStr = this.curToken.tokenType === tokenTypes.STRING
     const expression = this.parseExpression()
-    this.readToken()
+    if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+      this.readToken()
+    }
+    let isTop = false
+    if (this.curParse.type === 'pararm') {
+      isTop = this.pararm.statements.findIndex(item => !item.directive) < 0
+    } else if (this.curParse.type === 'FunctionExpression') {
+      isTop = this.curParse.statements.findIndex(item => !item.directive) < 0
+    }
+    if (isStr && isTop) {
+      return new Directive({
+        expression,
+        directive: expression.value
+      })
+    }
+
     return new ExpressionStatement({
       expression,
     })
   }
 
   parseVariableDeclaration() {
+    const lineNumber = this.curToken.lineNumber
     const props = {
       kind: this.curToken.literal,
       declarations: [],
     }
 
+    this.readToken()
     do {
-      if (this.nextToken.tokenType !== tokenTypes.IDENTIFIER) {
+      if (this.curToken.tokenType !== tokenTypes.IDENTIFIER) {
         // TODO 语法错误处理
         throw 'syntax error'
       }
-
-      this.readToken()
 
       const identifier = this.curToken
       if (this.nextToken.tokenType !== tokenTypes.ASSIGN_SIGN) {
@@ -340,10 +360,10 @@ class Parser {
         init: expression,
       }))
 
-      this.readToken()
     } while (this.curToken.tokenType === tokenTypes.COMMA)
 
-    if (!this.isNewLine(this.curToken)) {
+    if (!this.isStatementEnd(this.curToken)
+      && lineNumber === this.curToken.lineNumber) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -351,7 +371,7 @@ class Parser {
     return new VariableDeclaration(props)
   }
 
-  parseFunctionExpression() {
+  parseFunctionExpression(expParseMode = false) {
     const props = {
       id: null,
       body: [],
@@ -385,12 +405,13 @@ class Parser {
       throw 'syntax error'
     }
     this.readToken()
-    props.body = this.parseBlockStatement()
-
-    if (props.id) {
-      return new FunctionDeclaration(props)
+    this.curParse.type = 'FunctionExpression'
+    this.curParse.statements = props.body
+    props.body = this.parseBlockStatement(props.body, !expParseMode)
+    if (expParseMode) {
+      return new FunctionExpression(props)
     }
-    return new FunctionExpression(props)
+    return new FunctionDeclaration(props)
   }
 
   parseIfStatement() {
@@ -401,11 +422,10 @@ class Parser {
     this.readToken()
     this.readToken()
     const test = this.parseExpression()
-    if (this.nextToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
-    this.readToken()
     if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
       // TODO 语法错误处理
       throw 'syntax error'
@@ -437,18 +457,19 @@ class Parser {
     })
   }
 
-  parseBlockStatement() {
-    const statements = []
+  parseBlockStatement(body = [], autoReadNext = true) {
     this.readToken()
     while (this.curToken.tokenType !== tokenTypes.RIGHT_BRACE) {
       const statement = this.parseStatement()
       if (statement !== null) {
-        statements.push(statement)
+        body.push(statement)
       }
     }
-    this.readToken()
+    if (autoReadNext) {
+      this.readToken()
+    }
     return new BlockStatement({
-      body: statements
+      body
     })
   }
 
@@ -476,7 +497,6 @@ class Parser {
     this.readToken()
     if (this.curToken !== tokenTypes.SEMICOLON) {
       props.test = this.parseExpression()
-      this.readToken()
     }
     if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
       // TODO 语法错误处理
@@ -495,10 +515,18 @@ class Parser {
       // TODO 语法错误处理
       throw 'syntax error'
     }
-    this.readToken()
     props.body = this.parseBlockStatement()
 
     return new ForStatement(props)
+  }
+
+  parseEmptyStatement() {
+    this.readToken()
+    return new EmptyStatement({})
+  }
+
+  parseFunctionDeclaration() {
+    return this.parseFunctionExpression()
   }
 
   parseStatement() {
@@ -508,12 +536,11 @@ class Parser {
       case tokenTypes.VAR:
         return this.parseVariableDeclaration()
       case tokenTypes.SEMICOLON:
-        this.readToken()
-        return null
+        return this.parseEmptyStatement()
       case tokenTypes.IF:
         return this.parseIfStatement()
       case tokenTypes.FUNCTION:
-        return this.parseFunctionExpression()
+        return this.parseFunctionDeclaration()
       case tokenTypes.FOR:
         return this.parseForExpression()
       case tokenTypes.LEFT_BRACE:
@@ -525,6 +552,7 @@ class Parser {
   }
 
   parse() {
+    this.curParse.type = 'pararm'
     do {
       const statement = this.parseStatement()
       if (statement !== null) {

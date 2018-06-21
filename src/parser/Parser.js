@@ -304,7 +304,8 @@ class Parser {
       this.readToken()
       letExp = infix(letExp)
     }
-    if (autoReadNext) {
+    // FunctionExpression 已经自动 readToken
+    if (autoReadNext && letExp.type !== 'FunctionExpression') {
       this.readToken()
     }
     return letExp
@@ -464,7 +465,7 @@ class Parser {
     })
   }
 
-  parseBlockStatement(body = [], autoReadNext = true) {
+  parseBlockStatement(body = []) {
     this.readToken()
     while (this.curToken.tokenType !== tokenTypes.RIGHT_BRACE) {
       const statement = this.parseStatement()
@@ -472,9 +473,7 @@ class Parser {
         body.push(statement)
       }
     }
-    if (autoReadNext) {
-      this.readToken()
-    }
+    this.readToken()
     return new BlockStatement({
       body
     })
@@ -555,7 +554,7 @@ class Parser {
     this.readToken()
     if (!this.isStatementEnd(this.curToken)
       && lineNumber === this.curToken.lineNumber) {
-        argument = this.parseExpression()
+      argument = this.parseExpression()
     }
     if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
       this.readToken()

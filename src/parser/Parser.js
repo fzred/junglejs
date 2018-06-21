@@ -493,8 +493,16 @@ class Parser {
     }
     this.readToken()
     this.readToken()
-    if (this.curToken !== tokenTypes.SEMICOLON) {
-      props.init = this.parseStatement()
+    if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
+      switch (this.curToken.tokenType) {
+        case tokenTypes.LET:
+        case tokenTypes.CONST:
+        case tokenTypes.VAR:
+          props.init = this.parseVariableDeclaration()
+          break
+        default:
+          props.init = this.parseExpression()
+      }
     }
     if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
       // TODO 语法错误处理
@@ -510,7 +518,7 @@ class Parser {
     }
     this.readToken()
     if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
-      props.update = this.parseStatement()
+      props.update = this.parseExpression()
     }
     if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
       // TODO 语法错误处理

@@ -1,4 +1,3 @@
-
 /**
  * https://github.com/estree/estree/blob/master/es5.md
  */
@@ -87,8 +86,7 @@ export class FunctionDeclaration extends FunctionExpression {
 }
 
 export class Expression {
-  constructor(props) {
-  }
+  constructor(props) {}
 }
 
 export class AssignmentExpression extends Statement {

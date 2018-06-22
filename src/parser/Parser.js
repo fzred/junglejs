@@ -75,7 +75,7 @@ class Parser {
           argument: {
             type: 'Identifier',
             name: caller.curToken.literal,
-          }
+          },
         })
       },
       [tokenTypes.IDENTIFIER]() {
@@ -87,7 +87,7 @@ class Parser {
             operator: caller.curToken.literal,
             argument: new Identifier({
               name,
-            })
+            }),
           })
         }
         return new Identifier({
@@ -120,13 +120,15 @@ class Parser {
       },
       [tokenTypes.FUNCTION]: caller.parseFunctionExpression.bind(caller, true),
       [tokenTypes.LEFT_BRACE]: caller.parseObjectExpression.bind(caller),
-      [tokenTypes.LEFT_SQUARE_BRACKET]: caller.parseArrayExpression.bind(caller),
+      [tokenTypes.LEFT_SQUARE_BRACKET]: caller.parseArrayExpression.bind(
+        caller
+      ),
     }
   }
 
   parseObjectExpression() {
     const props = {
-      properties: []
+      properties: [],
     }
     this.readToken()
     while (this.curToken.tokenType !== tokenTypes.RIGHT_BRACE) {
@@ -135,12 +137,14 @@ class Parser {
         value: null,
         kind: 'init',
       }
-      if (this.curToken.tokenType === tokenTypes.STRING
-        || this.curToken.tokenType === tokenTypes.NUMBER) {
+      if (
+        this.curToken.tokenType === tokenTypes.STRING ||
+        this.curToken.tokenType === tokenTypes.NUMBER
+      ) {
         propertyProps.key = this.prefixParseFns[this.curToken.tokenType]
       } else {
         propertyProps.key = new Identifier({
-          name: this.curToken.literal
+          name: this.curToken.literal,
         })
       }
       this.readToken()
@@ -288,18 +292,22 @@ class Parser {
   }
 
   isStatementEnd(token) {
-    return token.tokenType === tokenTypes.SEMICOLON
-      || token.tokenType === tokenTypes.EFO
-      || token.tokenType === tokenTypes.RIGHT_BRACE
-      || token.tokenType === tokenTypes.RIGHT_PARENT
+    return (
+      token.tokenType === tokenTypes.SEMICOLON ||
+      token.tokenType === tokenTypes.EFO ||
+      token.tokenType === tokenTypes.RIGHT_BRACE ||
+      token.tokenType === tokenTypes.RIGHT_PARENT
+    )
   }
 
   parseExpression(precedence = 0, autoReadNext = true) {
     let letExp = this.prefixParseFns[this.curToken.tokenType]()
-    while (this.curToken.tokenType !== tokenTypes.EOF
-      && this.nextToken.tokenType !== tokenTypes.EOF
-      && this.nextTokenPrecedence > precedence
-      && !this.isStatementEnd(this.nextToken)) {
+    while (
+      this.curToken.tokenType !== tokenTypes.EOF &&
+      this.nextToken.tokenType !== tokenTypes.EOF &&
+      this.nextTokenPrecedence > precedence &&
+      !this.isStatementEnd(this.nextToken)
+    ) {
       const infix = this.infixParseFns[this.nextToken.tokenType]
       this.readToken()
       letExp = infix(letExp)
@@ -326,7 +334,7 @@ class Parser {
     if (isStr && isTop) {
       return new Directive({
         expression,
-        directive: expression.value
+        directive: expression.value,
       })
     }
 
@@ -359,15 +367,18 @@ class Parser {
       this.readToken()
 
       const expression = this.parseExpression()
-      props.declarations.push(new VariableDeclarator({
-        id: identifier,
-        init: expression,
-      }))
-
+      props.declarations.push(
+        new VariableDeclarator({
+          id: identifier,
+          init: expression,
+        })
+      )
     } while (this.curToken.tokenType === tokenTypes.COMMA)
 
-    if (!this.isStatementEnd(this.curToken)
-      && lineNumber === this.curToken.lineNumber) {
+    if (
+      !this.isStatementEnd(this.curToken) &&
+      lineNumber === this.curToken.lineNumber
+    ) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -448,7 +459,8 @@ class Parser {
       if (this.nextToken.tokenType === tokenTypes.IF) {
         this.readToken()
         alternate = this.parseIfStatement()
-      } else {  // parse else
+      } else {
+        // parse else
         if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
           // TODO 语法错误处理
           throw 'syntax error'
@@ -475,7 +487,7 @@ class Parser {
     }
     this.readToken()
     return new BlockStatement({
-      body
+      body,
     })
   }
 
@@ -560,15 +572,17 @@ class Parser {
     let argument = null
     const lineNumber = this.curToken.lineNumber
     this.readToken()
-    if (!this.isStatementEnd(this.curToken)
-      && lineNumber === this.curToken.lineNumber) {
+    if (
+      !this.isStatementEnd(this.curToken) &&
+      lineNumber === this.curToken.lineNumber
+    ) {
       argument = this.parseExpression()
     }
     if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
       this.readToken()
     }
     return new ReturnStatement({
-      argument
+      argument,
     })
   }
 
@@ -633,13 +647,14 @@ class Parser {
       if (statement !== null) {
         this.pararm.statements.push(statement)
       }
-    } while (this.curToken.tokenType !== tokenTypes.EOF
-      && this.curToken.tokenType !== tokenTypes.ILLEGAL)
+    } while (
+      this.curToken.tokenType !== tokenTypes.EOF &&
+      this.curToken.tokenType !== tokenTypes.ILLEGAL
+    )
     // console.log(this.pararm.statements)
     console.log(JSON.stringify(this.pararm.statements, null, 2))
     debugger
   }
-
 }
 
 export default Parser

@@ -104,7 +104,7 @@ class Lexer {
       case ';':
         return new Token(tokenTypes.SEMICOLON, this.char, this.lineNumber)
       case '"':
-      case '\'':
+      case "'":
         return this.readStringToken(this.char)
       case '=':
         if (this.nextChar === '=') {
@@ -151,14 +151,22 @@ class Lexer {
       case ',':
         return new Token(tokenTypes.COMMA, this.char, this.lineNumber)
       case '[':
-        return new Token(tokenTypes.LEFT_SQUARE_BRACKET, this.char, this.lineNumber)
+        return new Token(
+          tokenTypes.LEFT_SQUARE_BRACKET,
+          this.char,
+          this.lineNumber
+        )
       case ']':
-        return new Token(tokenTypes.RIGHT_SQUARE_BRACKET, this.char, this.lineNumber)
+        return new Token(
+          tokenTypes.RIGHT_SQUARE_BRACKET,
+          this.char,
+          this.lineNumber
+        )
       case '.':
         return new Token(tokenTypes.DOT, this.char, this.lineNumber)
       case ':':
         return new Token(tokenTypes.COLON, this.char, this.lineNumber)
-      // TODO 
+      // TODO
       default:
         let identifier = this.char
         if (identifier === null) {
@@ -193,8 +201,10 @@ class Lexer {
       if (token && token.tokenType !== tokenTypes.NEWLINE) {
         this.tokens.push(token)
       }
-    } while (token.tokenType !== tokenTypes.ILLEGAL
-      && token.tokenType !== tokenTypes.EOF)
+    } while (
+      token.tokenType !== tokenTypes.ILLEGAL &&
+      token.tokenType !== tokenTypes.EOF
+    )
   }
 }
 

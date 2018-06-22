@@ -3,7 +3,5 @@ export function verifyIdentifier(token) {
 }
 
 export function verifyNumber(token) {
-  return token.length > 0
-    && token !== '.'
-    && /^\d*\.?\d*$/.test(token)
+  return token.length > 0 && token !== '.' && /^\d*\.?\d*$/.test(token)
 }

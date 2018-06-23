@@ -227,3 +227,28 @@ export class ReturnStatement extends Statement {
     this.argument = props.argument
   }
 }
+
+export class LabeledStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'LabeledStatement'
+    this.label = props.label
+    this.body = props.body
+  }
+}
+
+export class ContinueStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'ContinueStatement'
+    this.label = props.label
+  }
+}
+
+export class BreakStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'BreakStatement'
+    this.label = props.label
+  }
+}

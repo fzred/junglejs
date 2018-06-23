@@ -46,4 +46,6 @@ export default {
 
   DEBUGGER: 'DEBUGGER',
   WITH: 'WITH',
+  CONTINUE: 'CONTINUE',
+  BREAK: 'BREAK',
 }

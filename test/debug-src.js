@@ -3,12 +3,10 @@ const jungle = require('../src').default
 // let b = a + 300
 // `)
 // jungle(`
-// const b = true
-// const f = false
 // const f = function d(hello){
 //   function f2(a,b,c){
 //     const s = a+b+c
-//     const c = a+b+c
+//     const c = f()
 //   }
 // }
 // `)
@@ -44,6 +42,7 @@ const jungle = require('../src').default
 // function a(){
 //   "use strict"
 //   const a = []
+//   "use strict"
 // }
 
 // `)
@@ -57,9 +56,24 @@ const jungle = require('../src').default
 //   console.log(a)
 // }
 // `)
+
 // jungle(`
 // function a(){
-
 //   return function(){};;;
+// }
+// `)
+
+// jungle(`
+// const a = 1
+// +
+// '222'
+// `)
+
+// jungle(`
+// l:for(let a=0;i<3;i++){
+//   if(a){
+//     continue l;;
+//   }
+//   break l;
 // }
 // `)

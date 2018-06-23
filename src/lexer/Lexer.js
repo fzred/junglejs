@@ -66,6 +66,10 @@ class Lexer {
         return new Token(tokenTypes.FOR, identifier, this.lineNumber)
       case 'in':
         return new Token(tokenTypes.IN, identifier, this.lineNumber)
+      case 'continue':
+        return new Token(tokenTypes.CONTINUE, identifier, this.lineNumber)
+      case 'break':
+        return new Token(tokenTypes.BREAK, identifier, this.lineNumber)
       case 'true':
       case 'false':
         return new Token(tokenTypes.BOOLEAN, identifier, this.lineNumber)

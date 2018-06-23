@@ -24,6 +24,9 @@ import {
   DebuggerStatement,
   WithStatement,
   ReturnStatement,
+  LabeledStatement,
+  ContinueStatement,
+  BreakStatement,
 } from './estree'
 
 class Parser {
@@ -50,10 +53,8 @@ class Parser {
 
     this.registerPrefixParseFns()
     this.registerInfixParseFns()
-    this.curParse = {
-      type: '',
-      statements: [],
-    }
+
+    this.parsePath = []
     this.pararm = new Pargarm()
     this.readToken()
     this.parse()
@@ -279,6 +280,10 @@ class Parser {
     this.position++
   }
 
+  get curParse() {
+    return this.parsePath[this.parsePath.length - 1] || null
+  }
+
   get nextToken() {
     return this.lexer.tokens[this.position]
   }
@@ -291,12 +296,48 @@ class Parser {
     return this.precedences[this.nextToken.tokenType] || 0
   }
 
+  /**
+   * 当前语句是否在严格模式内
+   */
+  isInStrictMode() {
+    for (let i = this.parsePath.length - 1; i >= 0; i--) {
+      const c = this.parsePath[i]
+      if (c.type === 'FunctionExpression' || c.type === 'pararm') {
+        if (
+          c.body.findIndex(
+            statement =>
+              statement.type === 'ExpressionStatement' &&
+              statement.directive === 'use strict'
+          ) > -1
+        )
+          return true
+      }
+    }
+    return false
+  }
+
+  parsePathClosest(type, stop) {
+    for (let i = this.parsePath.length - 1; i >= 0; i--) {
+      const c = this.parsePath[i]
+      if (c.type === stop) return null
+      if (c.type === type) return c
+    }
+    return null
+  }
+
   isStatementEnd(token) {
     return (
       token.tokenType === tokenTypes.SEMICOLON ||
-      token.tokenType === tokenTypes.EFO ||
+      token.tokenType === tokenTypes.EOF ||
       token.tokenType === tokenTypes.RIGHT_BRACE ||
       token.tokenType === tokenTypes.RIGHT_PARENT
+    )
+  }
+
+  isNewLine(position = this.position) {
+    return (
+      this.lexer.tokens[position - 1].lineNumber >
+      this.lexer.tokens[position - 2].lineNumber
     )
   }
 
@@ -304,9 +345,8 @@ class Parser {
     let letExp = this.prefixParseFns[this.curToken.tokenType]()
     while (
       this.curToken.tokenType !== tokenTypes.EOF &&
-      this.nextToken.tokenType !== tokenTypes.EOF &&
-      this.nextTokenPrecedence > precedence &&
-      !this.isStatementEnd(this.nextToken)
+      !this.isStatementEnd(this.nextToken) &&
+      this.nextTokenPrecedence > precedence
     ) {
       const infix = this.infixParseFns[this.nextToken.tokenType]
       this.readToken()
@@ -327,9 +367,12 @@ class Parser {
     }
     let isTop = false
     if (this.curParse.type === 'pararm') {
-      isTop = this.pararm.statements.findIndex(item => !item.directive) < 0
+      isTop = this.curParse.body.findIndex(item => !item.directive) < 0
     } else if (this.curParse.type === 'FunctionExpression') {
-      isTop = this.curParse.statements.findIndex(item => !item.directive) < 0
+      isTop = this.curParse.body.findIndex(item => !item.directive) < 0
+    }
+    if (!this.isNewLine()) {
+      throw 'syntax error'
     }
     if (isStr && isTop) {
       return new Directive({
@@ -344,7 +387,6 @@ class Parser {
   }
 
   parseVariableDeclaration() {
-    const lineNumber = this.curToken.lineNumber
     const props = {
       kind: this.curToken.literal,
       declarations: [],
@@ -375,10 +417,7 @@ class Parser {
       )
     } while (this.curToken.tokenType === tokenTypes.COMMA)
 
-    if (
-      !this.isStatementEnd(this.curToken) &&
-      lineNumber === this.curToken.lineNumber
-    ) {
+    if (!this.isStatementEnd(this.curToken) && !this.isNewLine()) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -420,9 +459,11 @@ class Parser {
       throw 'syntax error'
     }
     this.readToken()
-    this.curParse.type = 'FunctionExpression'
-    this.curParse.statements = props.body
-    props.body = this.parseBlockStatement(props.body, !expParseMode)
+    this.parsePath.push({
+      type: 'FunctionExpression',
+      body: props.body,
+    })
+    props.body = this.parseBlockStatement(props.body)
     if (expParseMode) {
       return new FunctionExpression(props)
     }
@@ -430,6 +471,7 @@ class Parser {
       // TODO 语法错误处理
       throw 'syntax error'
     }
+    this.parsePath.pop()
     return new FunctionDeclaration(props)
   }
 
@@ -541,7 +583,15 @@ class Parser {
       // TODO 语法错误处理
       throw 'syntax error'
     }
-    props.body = this.parseBlockStatement()
+
+    this.parsePath.push({
+      type: 'ForExpression',
+      body: props.body,
+    })
+
+    props.body = this.parseBlockStatement(props.body)
+
+    this.parsePath.pop()
 
     return new ForStatement(props)
   }
@@ -568,14 +618,13 @@ class Parser {
   }
 
   parseReturnStatement() {
-    // TODO 未限制只能在 function 里使用
+    if (!this.parsePathClosest('FunctionExpression')) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
     let argument = null
-    const lineNumber = this.curToken.lineNumber
     this.readToken()
-    if (
-      !this.isStatementEnd(this.curToken) &&
-      lineNumber === this.curToken.lineNumber
-    ) {
+    if (!this.isStatementEnd(this.curToken) && !this.isNewLine()) {
       argument = this.parseExpression()
     }
     if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
@@ -587,6 +636,10 @@ class Parser {
   }
 
   parseWithStatement() {
+    if (this.isInStrictMode()) {
+      // TODO 语法错误处理
+      throw 'syntax error: in strict mode'
+    }
     if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
       // TODO 语法错误处理
       throw 'syntax error'
@@ -612,6 +665,103 @@ class Parser {
     })
   }
 
+  parseLabeledStatement() {
+    const props = {
+      label: this.prefixParseFns[this.curToken.tokenType](),
+      body: null,
+    }
+    this.readToken()
+    this.readToken()
+    this.parsePath.push({
+      type: 'LabeledStatement',
+      label: props.label,
+      body: [],
+    })
+    props.body = this.parseStatement()
+    this.parsePath.pop()
+    return new LabeledStatement(props)
+  }
+
+  parseContinueStatement() {
+    const props = {
+      label: null,
+    }
+    if (!this.parsePathClosest('ForExpression', 'FunctionExpression')) {
+      // TODO 语法错误处理
+      throw 'syntax error: require in ForExpression'
+    }
+
+    this.readToken()
+    if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+      this.readToken()
+    } else if (!this.isNewLine()) {
+      if (this.curToken.tokenType !== tokenTypes.IDENTIFIER) {
+        // TODO 语法错误处理
+        throw 'syntax error: require IDENTIFIER'
+      }
+      const label = this.parsePathClosest(
+        'LabeledStatement',
+        'FunctionExpression'
+      )
+      if (!label) {
+        // TODO 语法错误处理
+        throw 'syntax error: require in labelStatement'
+      }
+      if (this.curToken.literal !== label.label.name) {
+        // TODO 语法错误处理
+        throw 'syntax error: label name not consistent'
+      }
+      props.label = this.prefixParseFns[this.curToken.tokenType]()
+
+      this.readToken()
+      if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+        this.readToken()
+      }
+    }
+
+    return new ContinueStatement(props)
+  }
+
+  parseBreakStatement() {
+    const props = {
+      label: null,
+    }
+    if (!this.parsePathClosest('ForExpression', 'FunctionExpression')) {
+      // TODO 语法错误处理
+      throw 'syntax error: require in ForExpression'
+    }
+
+    this.readToken()
+    if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+      this.readToken()
+    } else if (!this.isNewLine()) {
+      if (this.curToken.tokenType !== tokenTypes.IDENTIFIER) {
+        // TODO 语法错误处理
+        throw 'syntax error: require IDENTIFIER'
+      }
+      const label = this.parsePathClosest(
+        'LabeledStatement',
+        'FunctionExpression'
+      )
+      if (!label) {
+        // TODO 语法错误处理
+        throw 'syntax error: require in labelStatement'
+      }
+      if (this.curToken.literal !== label.label.name) {
+        // TODO 语法错误处理
+        throw 'syntax error: label name not consistent'
+      }
+      props.label = this.prefixParseFns[this.curToken.tokenType]()
+
+      this.readToken()
+      if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+        this.readToken()
+      }
+    }
+
+    return new BreakStatement(props)
+  }
+
   parseStatement() {
     switch (this.curToken.tokenType) {
       case tokenTypes.LET:
@@ -634,6 +784,14 @@ class Parser {
         return this.parseWithStatement()
       case tokenTypes.RETURN:
         return this.parseReturnStatement()
+      case tokenTypes.CONTINUE:
+        return this.parseContinueStatement()
+      case tokenTypes.BREAK:
+        return this.parseBreakStatement()
+      case tokenTypes.IDENTIFIER:
+        if (this.nextToken.tokenType === tokenTypes.COLON) {
+          return this.parseLabeledStatement()
+        }
       default:
         return this.parseExpressionStatement()
     }
@@ -641,7 +799,10 @@ class Parser {
   }
 
   parse() {
-    this.curParse.type = 'pararm'
+    this.parsePath.push({
+      type: 'pararm',
+      body: this.pararm.statements,
+    })
     do {
       const statement = this.parseStatement()
       if (statement !== null) {
@@ -651,6 +812,7 @@ class Parser {
       this.curToken.tokenType !== tokenTypes.EOF &&
       this.curToken.tokenType !== tokenTypes.ILLEGAL
     )
+    this.parsePath.pop()
     // console.log(this.pararm.statements)
     console.log(JSON.stringify(this.pararm.statements, null, 2))
     debugger

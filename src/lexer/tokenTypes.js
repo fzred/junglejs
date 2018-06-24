@@ -57,4 +57,7 @@ export default {
   TRY: 'TRY',
   CATCH: 'CATCH',
   FINALLY: 'FINALLY',
+
+  WHILE: 'WHILE',
+  DO: 'DO',
 }

@@ -32,6 +32,8 @@ import {
   ThrowStatement,
   TryStatement,
   CatchClause,
+  WhileStatement,
+  DoWhileStatement,
 } from './estree'
 
 class Parser {
@@ -593,7 +595,7 @@ class Parser {
     }
 
     this.parsePath.push({
-      type: 'ForExpression',
+      type: 'Loops',
       body: props.body,
     })
 
@@ -694,9 +696,9 @@ class Parser {
     const props = {
       label: null,
     }
-    if (!this.parsePathClosest('ForExpression', 'FunctionExpression')) {
+    if (!this.parsePathClosest('Loops', 'FunctionExpression')) {
       // TODO 语法错误处理
-      throw 'syntax error: require in ForExpression'
+      throw 'syntax error: require in Loops'
     }
 
     this.readToken()
@@ -735,11 +737,11 @@ class Parser {
       label: null,
     }
     if (
-      !this.parsePathClosest('ForExpression', 'FunctionExpression') &&
+      !this.parsePathClosest('Loops', 'FunctionExpression') &&
       !this.parsePathClosest('SwitchStatement', 'FunctionExpression')
     ) {
       // TODO 语法错误处理
-      throw 'syntax error: require in ForExpression'
+      throw 'syntax error: require in Loops'
     }
 
     this.readToken()
@@ -917,6 +919,74 @@ class Parser {
     return new TryStatement(tryProps)
   }
 
+  parseWhileStatement() {
+    const props = {
+      test: null,
+      body: null,
+    }
+    this.parsePath.push({
+      type: 'Loops',
+    })
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+
+    this.readToken()
+    this.readToken()
+    props.test = this.parseExpression()
+    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+
+    props.body = this.parseBlockStatement()
+
+    this.parsePath.pop()
+    return new WhileStatement(props)
+  }
+
+  parseDoWhileStatement() {
+    const props = {
+      test: null,
+      body: null,
+    }
+    this.parsePath.push({
+      type: 'Loops',
+    })
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    props.body = this.parseBlockStatement()
+    if (this.curToken.tokenType !== tokenTypes.WHILE) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+
+    this.readToken()
+    this.readToken()
+    props.test = this.parseExpression()
+    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+
+    this.parsePath.pop()
+    return new DoWhileStatement(props)
+  }
+
   parseStatement() {
     switch (this.curToken.tokenType) {
       case tokenTypes.LET:
@@ -949,6 +1019,10 @@ class Parser {
         return this.parseThrowStatement()
       case tokenTypes.TRY:
         return this.parseTryStatement()
+      case tokenTypes.WHILE:
+        return this.parseWhileStatement()
+      case tokenTypes.DO:
+        return this.parseDoWhileStatement()
       case tokenTypes.IDENTIFIER:
         if (this.nextToken.tokenType === tokenTypes.COLON) {
           return this.parseLabeledStatement()

@@ -101,14 +101,27 @@ const jungle = require('../src').default
 // throw 'error';
 // `)
 
-jungle(`
-try{}catch(e){}
-try{}finally{}
-try{
-  a()
-}catch(a){
-  throw a
-}finally{
-  b()
-}
-`)
+// jungle(`
+// try{}catch(e){}
+// try{}finally{}
+// try{
+//   a()
+// }catch(a){
+//   throw a
+// }finally{
+//   b()
+// }
+// `)
+
+// jungle(`
+// while(a){
+//   a--
+// }
+// `)
+
+// jungle(`
+// do{
+//   a--
+//   break;
+// }while(a)
+// `)

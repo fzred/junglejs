@@ -297,3 +297,21 @@ export class CatchClause extends Node {
     this.body = props.body
   }
 }
+
+export class WhileStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'WhileStatement'
+    this.test = props.test
+    this.body = props.body
+  }
+}
+
+export class DoWhileStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'DoWhileStatement'
+    this.test = props.test
+    this.body = props.body
+  }
+}

@@ -84,6 +84,10 @@ class Lexer {
         return new Token(tokenTypes.CATCH, identifier, this.lineNumber)
       case 'finally':
         return new Token(tokenTypes.FINALLY, identifier, this.lineNumber)
+      case 'while':
+        return new Token(tokenTypes.WHILE, identifier, this.lineNumber)
+      case 'do':
+        return new Token(tokenTypes.DO, identifier, this.lineNumber)
       case 'true':
       case 'false':
         return new Token(tokenTypes.BOOLEAN, identifier, this.lineNumber)

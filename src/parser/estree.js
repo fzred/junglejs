@@ -252,3 +252,29 @@ export class BreakStatement extends Statement {
     this.label = props.label
   }
 }
+
+export class SwitchStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'SwitchStatement'
+    this.discriminant = props.discriminant
+    this.cases = props.cases
+  }
+}
+
+export class SwitchCase extends Node {
+  constructor(props) {
+    super(props)
+    this.type = 'SwitchCase'
+    this.test = props.test
+    this.consequent = props.consequent
+  }
+}
+
+export class ThrowStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'ThrowStatement'
+    this.argument = props.argument
+  }
+}

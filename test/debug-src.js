@@ -77,3 +77,26 @@ const jungle = require('../src').default
 //   break l;
 // }
 // `)
+
+// jungle(`
+// a =1
+// b=2
+// `)
+
+// jungle(`
+// l1:switch(a){
+//   case 1:{
+//     a()
+//     break l1;
+//   }
+//   case 2:
+//     if(b){
+//     }
+//   default:
+//     a =3
+// }
+// `)
+
+// jungle(`
+// throw 'error';
+// `)

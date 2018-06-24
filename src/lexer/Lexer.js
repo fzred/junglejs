@@ -70,6 +70,14 @@ class Lexer {
         return new Token(tokenTypes.CONTINUE, identifier, this.lineNumber)
       case 'break':
         return new Token(tokenTypes.BREAK, identifier, this.lineNumber)
+      case 'switch':
+        return new Token(tokenTypes.SWITCH, identifier, this.lineNumber)
+      case 'case':
+        return new Token(tokenTypes.CASE, identifier, this.lineNumber)
+      case 'default':
+        return new Token(tokenTypes.DEFAULT, identifier, this.lineNumber)
+      case 'throw':
+        return new Token(tokenTypes.THROW, identifier, this.lineNumber)
       case 'true':
       case 'false':
         return new Token(tokenTypes.BOOLEAN, identifier, this.lineNumber)

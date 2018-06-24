@@ -27,6 +27,9 @@ import {
   LabeledStatement,
   ContinueStatement,
   BreakStatement,
+  SwitchStatement,
+  SwitchCase,
+  ThrowStatement,
 } from './estree'
 
 class Parser {
@@ -192,7 +195,7 @@ class Parser {
       right: null,
     }
     this.readToken()
-    props.right = this.parseExpression()
+    props.right = this.parseExpression(0, false)
     return new AssignmentExpression(props)
   }
 
@@ -726,7 +729,10 @@ class Parser {
     const props = {
       label: null,
     }
-    if (!this.parsePathClosest('ForExpression', 'FunctionExpression')) {
+    if (
+      !this.parsePathClosest('ForExpression', 'FunctionExpression') &&
+      !this.parsePathClosest('SwitchStatement', 'FunctionExpression')
+    ) {
       // TODO 语法错误处理
       throw 'syntax error: require in ForExpression'
     }
@@ -762,6 +768,91 @@ class Parser {
     return new BreakStatement(props)
   }
 
+  parseSwitchStatement() {
+    const switchProps = {
+      discriminant: null,
+      cases: [],
+    }
+    this.parsePath.push({
+      type: 'SwitchStatement',
+    })
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    this.readToken()
+    switchProps.discriminant = this.parseExpression()
+    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    this.readToken()
+
+    while (
+      this.curToken.tokenType === tokenTypes.CASE ||
+      this.curToken.tokenType === tokenTypes.DEFAULT
+    ) {
+      const isDefault = this.curToken.tokenType === tokenTypes.DEFAULT
+
+      this.readToken()
+      const caseProps = {
+        test: null,
+        consequent: [],
+      }
+      if (!isDefault) {
+        caseProps.test = this.parseExpression()
+      }
+      if (this.curToken.tokenType !== tokenTypes.COLON) {
+        // TODO 语法错误处理
+        throw 'syntax error'
+      }
+      this.readToken()
+      while (
+        this.curToken.tokenType !== tokenTypes.CASE &&
+        this.curToken.tokenType !== tokenTypes.DEFAULT &&
+        this.curToken.tokenType !== tokenTypes.RIGHT_BRACE
+      ) {
+        const statement = this.parseStatement()
+        if (statement !== null) {
+          caseProps.consequent.push(statement)
+        }
+      }
+      switchProps.cases.push(new SwitchCase(caseProps))
+      if (isDefault) {
+        break
+      }
+    }
+
+    if (this.curToken.tokenType !== tokenTypes.RIGHT_BRACE) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    this.parsePath.pop()
+    return new SwitchStatement(switchProps)
+  }
+
+  parseThrowStatement() {
+    let argument = null
+    this.readToken()
+    if (this.isStatementEnd(this.curToken) || this.isNewLine()) {
+      throw 'syntax error'
+    }
+    argument = this.parseExpression()
+    if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+      this.readToken()
+    }
+    return new ThrowStatement({
+      argument,
+    })
+  }
+
   parseStatement() {
     switch (this.curToken.tokenType) {
       case tokenTypes.LET:
@@ -788,6 +879,10 @@ class Parser {
         return this.parseContinueStatement()
       case tokenTypes.BREAK:
         return this.parseBreakStatement()
+      case tokenTypes.SWITCH:
+        return this.parseSwitchStatement()
+      case tokenTypes.THROW:
+        return this.parseThrowStatement()
       case tokenTypes.IDENTIFIER:
         if (this.nextToken.tokenType === tokenTypes.COLON) {
           return this.parseLabeledStatement()

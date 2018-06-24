@@ -48,4 +48,9 @@ export default {
   WITH: 'WITH',
   CONTINUE: 'CONTINUE',
   BREAK: 'BREAK',
+
+  SWITCH: 'SWITCH',
+  CASE: 'CASE',
+  DEFAULT: 'DEFAULT',
+  THROW: 'THROW',
 }

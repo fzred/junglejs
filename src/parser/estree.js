@@ -278,3 +278,22 @@ export class ThrowStatement extends Statement {
     this.argument = props.argument
   }
 }
+
+export class TryStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'TryStatement'
+    this.block = props.block
+    this.handler = props.handler
+    this.finalizer = props.finalizer
+  }
+}
+
+export class CatchClause extends Node {
+  constructor(props) {
+    super(props)
+    this.type = 'CatchClause'
+    this.param = props.param
+    this.body = props.body
+  }
+}

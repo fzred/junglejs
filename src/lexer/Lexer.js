@@ -78,6 +78,12 @@ class Lexer {
         return new Token(tokenTypes.DEFAULT, identifier, this.lineNumber)
       case 'throw':
         return new Token(tokenTypes.THROW, identifier, this.lineNumber)
+      case 'try':
+        return new Token(tokenTypes.TRY, identifier, this.lineNumber)
+      case 'catch':
+        return new Token(tokenTypes.CATCH, identifier, this.lineNumber)
+      case 'finally':
+        return new Token(tokenTypes.FINALLY, identifier, this.lineNumber)
       case 'true':
       case 'false':
         return new Token(tokenTypes.BOOLEAN, identifier, this.lineNumber)

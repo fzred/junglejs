@@ -52,5 +52,9 @@ export default {
   SWITCH: 'SWITCH',
   CASE: 'CASE',
   DEFAULT: 'DEFAULT',
+
   THROW: 'THROW',
+  TRY: 'TRY',
+  CATCH: 'CATCH',
+  FINALLY: 'FINALLY',
 }

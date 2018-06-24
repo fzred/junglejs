@@ -30,6 +30,8 @@ import {
   SwitchStatement,
   SwitchCase,
   ThrowStatement,
+  TryStatement,
+  CatchClause,
 } from './estree'
 
 class Parser {
@@ -374,7 +376,10 @@ class Parser {
     } else if (this.curParse.type === 'FunctionExpression') {
       isTop = this.curParse.body.findIndex(item => !item.directive) < 0
     }
-    if (!this.isNewLine()) {
+    if (
+      this.curToken.tokenType !== tokenTypes.RIGHT_BRACE &&
+      !this.isNewLine()
+    ) {
       throw 'syntax error'
     }
     if (isStr && isTop) {
@@ -853,6 +858,65 @@ class Parser {
     })
   }
 
+  parseTryStatement() {
+    const tryProps = {
+      block: null,
+      handler: null,
+      finalizer: null,
+    }
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+
+    tryProps.block = this.parseBlockStatement()
+
+    if (this.curToken.tokenType === tokenTypes.CATCH) {
+      const catchProps = {
+        param: null,
+        body: null,
+      }
+      const parseIDENTIFIER = this.prefixParseFns[tokenTypes.IDENTIFIER]
+      if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+        // TODO 语法错误处理
+        throw 'syntax error'
+      }
+      this.readToken()
+      this.readToken()
+      catchProps.param = parseIDENTIFIER(this.curToken)
+      if (this.nextToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+        // TODO 语法错误处理
+        throw 'syntax error'
+      }
+      this.readToken()
+      if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+        // TODO 语法错误处理
+        throw 'syntax error'
+      }
+      this.readToken()
+
+      catchProps.body = this.parseBlockStatement()
+      tryProps.handler = new CatchClause(catchProps)
+    }
+    if (this.curToken.tokenType === tokenTypes.FINALLY) {
+      if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+        // TODO 语法错误处理
+        throw 'syntax error'
+      }
+      this.readToken()
+
+      tryProps.finalizer = this.parseBlockStatement()
+    }
+
+    if (tryProps.handler === null && tryProps.finalizer === null) {
+      // If handler is null then finalizer must be a BlockStatement.
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    return new TryStatement(tryProps)
+  }
+
   parseStatement() {
     switch (this.curToken.tokenType) {
       case tokenTypes.LET:
@@ -883,6 +947,8 @@ class Parser {
         return this.parseSwitchStatement()
       case tokenTypes.THROW:
         return this.parseThrowStatement()
+      case tokenTypes.TRY:
+        return this.parseTryStatement()
       case tokenTypes.IDENTIFIER:
         if (this.nextToken.tokenType === tokenTypes.COLON) {
           return this.parseLabeledStatement()

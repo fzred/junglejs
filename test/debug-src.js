@@ -100,3 +100,15 @@ const jungle = require('../src').default
 // jungle(`
 // throw 'error';
 // `)
+
+jungle(`
+try{}catch(e){}
+try{}finally{}
+try{
+  a()
+}catch(a){
+  throw a
+}finally{
+  b()
+}
+`)

@@ -315,3 +315,13 @@ export class DoWhileStatement extends Statement {
     this.body = props.body
   }
 }
+
+export class ForInStatement extends Statement {
+  constructor(props) {
+    super(props)
+    this.type = 'ForInStatement'
+    this.left = props.left
+    this.right = props.right
+    this.body = props.body
+  }
+}

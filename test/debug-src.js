@@ -27,7 +27,7 @@ const jungle = require('../src').default
 // `)
 
 // jungle(`
-// ({a:1,b:22,c:{ddd:333}})
+// ({'a':1,1:22,c:{ddd:333}})
 // `)
 
 // jungle(`
@@ -124,4 +124,10 @@ const jungle = require('../src').default
 //   a--
 //   break;
 // }while(a)
+// `)
+
+// jungle(`
+// for(a in obj){
+//   b()
+// }
 // `)

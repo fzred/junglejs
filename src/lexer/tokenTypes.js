@@ -60,4 +60,6 @@ export default {
 
   WHILE: 'WHILE',
   DO: 'DO',
+  IN: 'IN',
+  OF: 'OF',
 }

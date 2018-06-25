@@ -34,6 +34,7 @@ import {
   CatchClause,
   WhileStatement,
   DoWhileStatement,
+  ForInStatement,
 } from './estree'
 
 class Parser {
@@ -149,7 +150,7 @@ class Parser {
         this.curToken.tokenType === tokenTypes.STRING ||
         this.curToken.tokenType === tokenTypes.NUMBER
       ) {
-        propertyProps.key = this.prefixParseFns[this.curToken.tokenType]
+        propertyProps.key = this.prefixParseFns[this.curToken.tokenType]()
       } else {
         propertyProps.key = new Identifier({
           name: this.curToken.literal,
@@ -409,7 +410,7 @@ class Parser {
         throw 'syntax error'
       }
 
-      const identifier = this.curToken
+      const identifier = this.prefixParseFns[this.curToken.tokenType]()
       if (this.nextToken.tokenType !== tokenTypes.ASSIGN_SIGN) {
         // TODO 语法错误处理
         throw 'syntax error'
@@ -543,36 +544,13 @@ class Parser {
     })
   }
 
-  parseForExpression() {
+  parseForStatement(init) {
     const props = {
-      init: null,
+      init,
       test: null,
       update: null,
       body: [],
     }
-
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
-      // TODO 语法错误处理
-      throw 'syntax error'
-    }
-    this.readToken()
-    this.readToken()
-    if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
-      switch (this.curToken.tokenType) {
-        case tokenTypes.LET:
-        case tokenTypes.CONST:
-        case tokenTypes.VAR:
-          props.init = this.parseVariableDeclaration()
-          break
-        default:
-          props.init = this.parseExpression()
-      }
-    }
-    if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
-      // TODO 语法错误处理
-      throw 'syntax error'
-    }
-    this.readToken()
     if (this.curToken !== tokenTypes.SEMICOLON) {
       props.test = this.parseExpression()
     }
@@ -596,14 +574,81 @@ class Parser {
 
     this.parsePath.push({
       type: 'Loops',
-      body: props.body,
     })
 
-    props.body = this.parseBlockStatement(props.body)
+    props.body = this.parseBlockStatement()
 
     this.parsePath.pop()
 
     return new ForStatement(props)
+  }
+
+  parseForInStatement(left) {
+    const props = {
+      left,
+      right: null,
+      body: null,
+    }
+
+    this.readToken()
+    props.right = this.parseExpression()
+    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    if (this.curToken.tokenType !== tokenTypes.LEFT_BRACE) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+
+    this.parsePath.push({
+      type: 'Loops',
+      body: props.body,
+    })
+
+    props.body = this.parseBlockStatement()
+
+    this.parsePath.pop()
+    return new ForInStatement(props)
+  }
+
+  parseFor() {
+    let init = null
+    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    this.readToken()
+    if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
+      switch (this.curToken.tokenType) {
+        case tokenTypes.LET:
+        case tokenTypes.CONST:
+        case tokenTypes.VAR:
+          init = this.parseVariableDeclaration()
+          break
+        default:
+          init = this.parseExpression()
+      }
+    } else {
+      this.readToken()
+      return this.parseForStatement(init)
+    }
+    if (this.curToken.tokenType === tokenTypes.IN) {
+      if (init.type !== 'VariableDeclaration' && init.type !== 'Identifier') {
+        // TODO 语法错误处理
+        throw 'syntax error'
+      }
+      return this.parseForInStatement(init)
+    } else if (this.curToken.tokenType === tokenTypes.OF) {
+    } else if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    } else {
+      this.readToken()
+      return this.parseForStatement(init)
+    }
   }
 
   parseEmptyStatement() {
@@ -1000,7 +1045,7 @@ class Parser {
       case tokenTypes.FUNCTION:
         return this.parseFunctionDeclaration()
       case tokenTypes.FOR:
-        return this.parseForExpression()
+        return this.parseFor()
       case tokenTypes.LEFT_BRACE:
         return this.parseBlockStatement()
       case tokenTypes.DEBUGGER:

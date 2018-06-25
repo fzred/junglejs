@@ -88,6 +88,10 @@ class Lexer {
         return new Token(tokenTypes.WHILE, identifier, this.lineNumber)
       case 'do':
         return new Token(tokenTypes.DO, identifier, this.lineNumber)
+      case 'in':
+        return new Token(tokenTypes.IN, identifier, this.lineNumber)
+      case 'of':
+        return new Token(tokenTypes.OF, identifier, this.lineNumber)
       case 'true':
       case 'false':
         return new Token(tokenTypes.BOOLEAN, identifier, this.lineNumber)

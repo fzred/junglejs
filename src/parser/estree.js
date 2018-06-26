@@ -325,3 +325,17 @@ export class ForInStatement extends Statement {
     this.body = props.body
   }
 }
+
+export class ForOfStatement extends ForInStatement {
+  constructor(props) {
+    super(props)
+    this.type = 'ForOfStatement'
+  }
+}
+
+export class ThisExpression extends Expression {
+  constructor(props) {
+    super(props)
+    this.type = 'ThisExpression'
+  }
+}

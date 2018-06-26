@@ -62,4 +62,6 @@ export default {
   DO: 'DO',
   IN: 'IN',
   OF: 'OF',
+
+  THIS: 'THIS',
 }

@@ -92,6 +92,8 @@ class Lexer {
         return new Token(tokenTypes.IN, identifier, this.lineNumber)
       case 'of':
         return new Token(tokenTypes.OF, identifier, this.lineNumber)
+      case 'this':
+        return new Token(tokenTypes.THIS, identifier, this.lineNumber)
       case 'true':
       case 'false':
         return new Token(tokenTypes.BOOLEAN, identifier, this.lineNumber)

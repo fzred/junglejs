@@ -131,3 +131,15 @@ const jungle = require('../src').default
 //   b()
 // }
 // `)
+
+// jungle(`
+// for(a of obj){
+//   b()
+// }
+// `)
+
+// jungle(`
+// this.a
+// a.this.d
+// a[this].d
+// `)

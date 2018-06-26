@@ -35,6 +35,8 @@ import {
   WhileStatement,
   DoWhileStatement,
   ForInStatement,
+  ForOfStatement,
+  ThisExpression,
 } from './estree'
 
 class Parser {
@@ -126,6 +128,9 @@ class Parser {
         return new Literal({
           value: caller.curToken.literal === 'true',
         })
+      },
+      [tokenTypes.THIS]() {
+        return new ThisExpression({})
       },
       [tokenTypes.FUNCTION]: caller.parseFunctionExpression.bind(caller, true),
       [tokenTypes.LEFT_BRACE]: caller.parseObjectExpression.bind(caller),
@@ -253,12 +258,19 @@ class Parser {
           object: leftExp,
         })
       } else {
-        if (caller.nextToken.tokenType !== tokenTypes.IDENTIFIER) {
-          // TODO 语法错误处理
-          throw 'syntax error'
-        }
         caller.readToken()
-        const property = caller.prefixParseFns[tokenTypes.IDENTIFIER]()
+        let property
+        if (caller.curToken.tokenType === tokenTypes.THIS) {
+          property = new Identifier({
+            name: 'this',
+          })
+        } else {
+          if (caller.curToken.tokenType !== tokenTypes.IDENTIFIER) {
+            // TODO 语法错误处理
+            throw 'syntax error'
+          }
+          property = caller.prefixParseFns[tokenTypes.IDENTIFIER]()
+        }
 
         return new MemberExpression({
           computed,
@@ -583,7 +595,12 @@ class Parser {
     return new ForStatement(props)
   }
 
-  parseForInStatement(left) {
+  parseForInStatement(left, isOf) {
+    if (left.type !== 'VariableDeclaration' && left.type !== 'Identifier') {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+
     const props = {
       left,
       right: null,
@@ -610,6 +627,9 @@ class Parser {
     props.body = this.parseBlockStatement()
 
     this.parsePath.pop()
+    if (isOf) {
+      return new ForOfStatement(props)
+    }
     return new ForInStatement(props)
   }
 
@@ -636,12 +656,9 @@ class Parser {
       return this.parseForStatement(init)
     }
     if (this.curToken.tokenType === tokenTypes.IN) {
-      if (init.type !== 'VariableDeclaration' && init.type !== 'Identifier') {
-        // TODO 语法错误处理
-        throw 'syntax error'
-      }
       return this.parseForInStatement(init)
     } else if (this.curToken.tokenType === tokenTypes.OF) {
+      return this.parseForInStatement(init, true)
     } else if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
       // TODO 语法错误处理
       throw 'syntax error'

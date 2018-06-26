@@ -17,6 +17,7 @@ export default [
   'function',
   'if',
   'in',
+  'of',
   'instanceof',
   'new',
   'return',

@@ -1,8 +1,8 @@
 class Token {
-  constructor(type, literal, lineNumber) {
+  constructor(type, literal, loc) {
     this.tokenType = type
     this.literal = literal
-    this.lineNumber = lineNumber
+    this.loc = loc
   }
 }
 

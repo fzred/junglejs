@@ -356,8 +356,9 @@ class Parser {
 
   isNewLine(position = this.position) {
     return (
-      this.lexer.tokens[position - 1].lineNumber >
-      this.lexer.tokens[position - 2].lineNumber
+      this.curToken.tokenType === tokenTypes.EOF ||
+      this.lexer.tokens[position - 1].loc.start.line >
+        this.lexer.tokens[position - 2].loc.end.line
     )
   }
 

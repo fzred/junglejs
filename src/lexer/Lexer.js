@@ -10,10 +10,21 @@ class Lexer {
   constructor(sourceCode) {
     console.log(sourceCode)
     this.sourceCode = sourceCode
-    this.lineNumber = 0
+    this.lineNumber = 1
+    this.columnNumber = -1
     this.position = 0
     this.char = ''
     this.tokens = []
+    this.loc = {
+      start: {
+        line: 0,
+        column: 0,
+      },
+      end: {
+        line: 0,
+        column: 0,
+      },
+    }
     this.lexing()
   }
 
@@ -23,6 +34,7 @@ class Lexer {
     } else {
       this.char = this.sourceCode[this.position]
     }
+    this.columnNumber++
     this.position++
   }
 
@@ -45,61 +57,61 @@ class Lexer {
   createKeywordToken(identifier) {
     switch (identifier) {
       case 'with':
-        return new Token(tokenTypes.WITH, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.WITH, identifier)
       case 'return':
-        return new Token(tokenTypes.RETURN, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.RETURN, identifier)
       case 'debugger':
-        return new Token(tokenTypes.DEBUGGER, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.DEBUGGER, identifier)
       case 'const':
-        return new Token(tokenTypes.CONST, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.CONST, identifier)
       case 'var':
-        return new Token(tokenTypes.VAR, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.VAR, identifier)
       case 'let':
-        return new Token(tokenTypes.LET, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.LET, identifier)
       case 'if':
-        return new Token(tokenTypes.IF, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.IF, identifier)
       case 'else':
-        return new Token(tokenTypes.ELSE, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.ELSE, identifier)
       case 'function':
-        return new Token(tokenTypes.FUNCTION, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.FUNCTION, identifier)
       case 'for':
-        return new Token(tokenTypes.FOR, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.FOR, identifier)
       case 'in':
-        return new Token(tokenTypes.IN, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.IN, identifier)
       case 'continue':
-        return new Token(tokenTypes.CONTINUE, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.CONTINUE, identifier)
       case 'break':
-        return new Token(tokenTypes.BREAK, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.BREAK, identifier)
       case 'switch':
-        return new Token(tokenTypes.SWITCH, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.SWITCH, identifier)
       case 'case':
-        return new Token(tokenTypes.CASE, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.CASE, identifier)
       case 'default':
-        return new Token(tokenTypes.DEFAULT, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.DEFAULT, identifier)
       case 'throw':
-        return new Token(tokenTypes.THROW, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.THROW, identifier)
       case 'try':
-        return new Token(tokenTypes.TRY, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.TRY, identifier)
       case 'catch':
-        return new Token(tokenTypes.CATCH, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.CATCH, identifier)
       case 'finally':
-        return new Token(tokenTypes.FINALLY, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.FINALLY, identifier)
       case 'while':
-        return new Token(tokenTypes.WHILE, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.WHILE, identifier)
       case 'do':
-        return new Token(tokenTypes.DO, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.DO, identifier)
       case 'in':
-        return new Token(tokenTypes.IN, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.IN, identifier)
       case 'of':
-        return new Token(tokenTypes.OF, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.OF, identifier)
       case 'this':
-        return new Token(tokenTypes.THIS, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.THIS, identifier)
       case 'true':
       case 'false':
-        return new Token(tokenTypes.BOOLEAN, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.BOOLEAN, identifier)
       // TODO
       default:
-        return new Token(tokenTypes.ILLEGAL, identifier, this.lineNumber)
+        return this.createToken(tokenTypes.ILLEGAL, identifier)
     }
   }
 
@@ -115,97 +127,109 @@ class Lexer {
       this.readChar()
     }
     if (this.char !== c) {
-      return new Token(tokenTypes.ILLEGAL, '', this.lineNumber)
+      return this.createToken(tokenTypes.ILLEGAL, '')
     }
 
-    return new Token(tokenTypes.STRING, str, this.lineNumber)
+    return this.createToken(tokenTypes.STRING, str)
+  }
+
+  createToken(type, text) {
+    this.loc.end.line = this.lineNumber
+    this.loc.end.column = this.columnNumber
+    const loc = {
+      start: {
+        line: this.loc.start.line,
+        column: this.loc.start.column,
+      },
+      end: {
+        line: this.loc.end.line,
+        column: this.loc.end.column + 1,
+      },
+    }
+    return new Token(type, text, loc)
   }
 
   nextToken() {
     this.readChar()
     this.skipSpack()
+    this.loc.start.line = this.lineNumber
+    this.loc.start.column = this.columnNumber
+
     switch (this.char) {
       case '\r':
       case '\n':
         this.lineNumber++
-        return new Token(tokenTypes.NEWLINE, '\n', this.lineNumber)
+        this.columnNumber = -1
+        return this.createToken(tokenTypes.NEWLINE, '\n')
       case ';':
-        return new Token(tokenTypes.SEMICOLON, this.char, this.lineNumber)
+        return this.createToken(tokenTypes.SEMICOLON, this.char)
       case '"':
       case "'":
         return this.readStringToken(this.char)
       case '=':
         if (this.nextChar === '=') {
           this.readChar()
-          return new Token(tokenTypes.EQ, '==', this.lineNumber)
+          return this.createToken(tokenTypes.EQ, '==')
         } else {
-          return new Token(tokenTypes.ASSIGN_SIGN, this.char, this.lineNumber)
+          return this.createToken(tokenTypes.ASSIGN_SIGN, this.char)
         }
       case '!':
         if (this.nextChar === '=') {
           this.readChar()
-          return new Token(tokenTypes.NOT_EQ, '!=', this.lineNumber)
+          return this.createToken(tokenTypes.NOT_EQ, '!=')
         } else {
-          return new Token(tokenTypes.BANG_SIGN, this.char, this.lineNumber)
+          return this.createToken(tokenTypes.BANG_SIGN, this.char)
         }
       case '+':
         if (this.nextChar === '+') {
           this.readChar()
-          return new Token(tokenTypes.INC_DEC, '++', this.lineNumber)
+          return this.createToken(tokenTypes.INC_DEC, '++')
         }
-        return new Token(tokenTypes.PLUS_SIGN, this.char, this.lineNumber)
+        return this.createToken(tokenTypes.PLUS_SIGN, this.char)
       case '-':
         if (this.nextChar === '-') {
           this.readChar()
-          return new Token(tokenTypes.INC_DEC, '--', this.lineNumber)
+          return this.createToken(tokenTypes.INC_DEC, '--')
         }
-        return new Token(tokenTypes.MINUS_SIGN, this.char, this.lineNumber)
+        return this.createToken(tokenTypes.MINUS_SIGN, this.char)
       case '/':
-        return new Token(tokenTypes.SLASH, this.char, this.lineNumber)
+        return this.createToken(tokenTypes.SLASH, this.char)
       case '*':
-        return new Token(tokenTypes.ASTERISK, this.char, this.lineNumber)
+        return this.createToken(tokenTypes.ASTERISK, this.char)
       case '(':
-        return new Token(tokenTypes.LEFT_PARENT, this.char, this.lineNumber)
+        return this.createToken(tokenTypes.LEFT_PARENT, this.char)
       case ')':
-        return new Token(tokenTypes.RIGHT_PARENT, this.char, this.lineNumber)
+        return this.createToken(tokenTypes.RIGHT_PARENT, this.char)
       case '<':
-        return new Token(tokenTypes.LT, this.char, this.lineNumber)
+        return this.createToken(tokenTypes.LT, this.char)
       case '>':
-        return new Token(tokenTypes.GT, this.char, this.lineNumber)
+        return this.createToken(tokenTypes.GT, this.char)
       case '{':
-        return new Token(tokenTypes.LEFT_BRACE, this.char, this.lineNumber)
+        return this.createToken(tokenTypes.LEFT_BRACE, this.char)
       case '}':
-        return new Token(tokenTypes.RIGHT_BRACE, this.char, this.lineNumber)
+        return this.createToken(tokenTypes.RIGHT_BRACE, this.char)
       case ',':
-        return new Token(tokenTypes.COMMA, this.char, this.lineNumber)
+        return this.createToken(tokenTypes.COMMA, this.char)
       case '[':
-        return new Token(
-          tokenTypes.LEFT_SQUARE_BRACKET,
-          this.char,
-          this.lineNumber
-        )
+        return this.createToken(tokenTypes.LEFT_SQUARE_BRACKET, this.char)
       case ']':
-        return new Token(
-          tokenTypes.RIGHT_SQUARE_BRACKET,
-          this.char,
-          this.lineNumber
-        )
+        return this.createToken(tokenTypes.RIGHT_SQUARE_BRACKET, this.char)
       case '.':
-        return new Token(tokenTypes.DOT, this.char, this.lineNumber)
+        return this.createToken(tokenTypes.DOT, this.char)
       case ':':
-        return new Token(tokenTypes.COLON, this.char, this.lineNumber)
+        return this.createToken(tokenTypes.COLON, this.char)
       // TODO
       default:
         let identifier = this.char
         if (identifier === null) {
-          return new Token(tokenTypes.EOF, '', this.lineNumber)
+          return this.createToken(tokenTypes.EOF, '')
         }
         if (verifyNumber(identifier)) {
           while (verifyNumber(identifier + this.nextChar)) {
             this.readChar()
             identifier += this.char
           }
-          return new Token(tokenTypes.NUMBER, identifier, this.lineNumber)
+          return this.createToken(tokenTypes.NUMBER, identifier)
         } else if (verifyIdentifier(identifier)) {
           while (verifyIdentifier(identifier + this.nextChar)) {
             this.readChar()
@@ -215,9 +239,9 @@ class Lexer {
             // 关键字处理
             return this.createKeywordToken(identifier)
           }
-          return new Token(tokenTypes.IDENTIFIER, identifier, this.lineNumber)
+          return this.createToken(tokenTypes.IDENTIFIER, identifier)
         } else {
-          return new Token(tokenTypes.ILLEGAL, identifier, this.lineNumber)
+          return this.createToken(tokenTypes.ILLEGAL, identifier)
         }
     }
   }

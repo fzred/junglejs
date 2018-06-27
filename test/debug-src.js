@@ -143,3 +143,5 @@ const jungle = require('../src').default
 // a.this.d
 // a[this].d
 // `)
+
+jungle(`abc ();`)

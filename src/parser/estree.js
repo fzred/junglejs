@@ -67,7 +67,7 @@ export class Program extends Node {
   constructor(props) {
     super(props)
     this.type = 'Pargarm'
-    this.statements = []
+    this.body = []
   }
 }
 

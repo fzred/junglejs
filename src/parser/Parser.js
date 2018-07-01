@@ -93,6 +93,7 @@ class Parser {
       },
       [tokenTypes.IDENTIFIER]() {
         const name = caller.curToken.literal
+        caller.parsePostion.push(deepCopy(caller.curToken.loc))
         if (caller.nextToken.tokenType === tokenTypes.INC_DEC) {
           caller.readToken()
           return new UpdateExpression({
@@ -101,10 +102,13 @@ class Parser {
             argument: new Identifier({
               name,
             }),
+            loc: caller.parsePostion.pop(),
           })
         }
+        const loc = caller.parsePostion.pop()
         return new Identifier({
           name,
+          loc: loc,
         })
       },
       [tokenTypes.LEFT_PARENT]() {
@@ -119,16 +123,19 @@ class Parser {
       [tokenTypes.NUMBER]() {
         return new Literal({
           value: Number(caller.curToken.literal),
+          loc: deepCopy(caller.curToken.loc),
         })
       },
       [tokenTypes.STRING]() {
         return new Literal({
           value: String(caller.curToken.literal),
+          loc: deepCopy(caller.curToken.loc),
         })
       },
       [tokenTypes.BOOLEAN]() {
         return new Literal({
           value: caller.curToken.literal === 'true',
+          loc: deepCopy(caller.curToken.loc),
         })
       },
       [tokenTypes.THIS]() {
@@ -222,6 +229,10 @@ class Parser {
         left: leftExp,
         operator,
         right: rightExp,
+        loc: {
+          start: leftExp.loc.start,
+          end: caller.curToken.loc.end,
+        },
       })
     }
     function callParse(leftExp) {
@@ -239,6 +250,10 @@ class Parser {
       return new CallExpression({
         callee: leftExp,
         argument,
+        loc: {
+          start: leftExp.loc.start,
+          end: caller.curToken.loc.end,
+        },
       })
     }
     function parseMemberExpression(computed, leftExp) {
@@ -387,6 +402,7 @@ class Parser {
 
   parseExpressionStatement() {
     let isStr = this.curToken.tokenType === tokenTypes.STRING
+    this.parsePostion.push(deepCopy(this.curToken.loc))
     const expression = this.parseExpression()
     if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
       this.readToken()
@@ -412,6 +428,10 @@ class Parser {
 
     return new ExpressionStatement({
       expression,
+      loc: {
+        start: this.parsePostion.pop().start,
+        end: this.prevToken.loc.end,
+      },
     })
   }
 
@@ -419,10 +439,12 @@ class Parser {
     const props = {
       kind: this.curToken.literal,
       declarations: [],
+      loc: deepCopy(this.curToken.loc),
     }
 
-    this.readToken()
     do {
+      this.readToken()
+      const locVariableDeclarator = deepCopy(this.curToken.loc)
       if (this.curToken.tokenType !== tokenTypes.IDENTIFIER) {
         // TODO 语法错误处理
         throw 'syntax error'
@@ -442,15 +464,22 @@ class Parser {
         new VariableDeclarator({
           id: identifier,
           init: expression,
+          loc: {
+            ...locVariableDeclarator,
+            end: this.prevToken.loc.end,
+          },
         })
       )
     } while (this.curToken.tokenType === tokenTypes.COMMA)
 
-    if (!this.isStatementEnd(this.curToken) && !this.isNewLine()) {
+    if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+      this.readToken()
+    } else if (!this.isStatementEnd(this.curToken) && !this.isNewLine()) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
 
+    props.loc.end = this.prevToken.loc.end
     return new VariableDeclaration(props)
   }
 
@@ -459,6 +488,7 @@ class Parser {
       id: null,
       body: [],
       params: [],
+      loc: deepCopy(this.curToken.loc),
     }
     const parseIDENTIFIER = this.prefixParseFns[tokenTypes.IDENTIFIER]
     if (this.nextToken.tokenType === tokenTypes.IDENTIFIER) {
@@ -493,6 +523,7 @@ class Parser {
       body: props.body,
     })
     props.body = this.parseBlockStatement(props.body)
+    props.loc.end = this.prevToken.loc.end
     if (expParseMode) {
       return new FunctionExpression(props)
     }
@@ -549,6 +580,7 @@ class Parser {
   }
 
   parseBlockStatement(body = []) {
+    const loc = deepCopy(this.curToken.loc)
     this.readToken()
     while (this.curToken.tokenType !== tokenTypes.RIGHT_BRACE) {
       const statement = this.parseStatement()
@@ -559,6 +591,7 @@ class Parser {
     this.readToken()
     return new BlockStatement({
       body,
+      loc: { ...loc, end: this.prevToken.loc.end },
     })
   }
 
@@ -1106,13 +1139,13 @@ class Parser {
     this.program = new Program({ loc })
     this.parsePath.push({
       type: 'program',
-      body: this.program.statements,
+      body: this.program.body,
     })
     this.parsePostion.push(loc)
     do {
       const statement = this.parseStatement()
       if (statement !== null) {
-        this.program.statements.push(statement)
+        this.program.body.push(statement)
       }
     } while (
       this.curToken.tokenType !== tokenTypes.EOF &&
@@ -1121,7 +1154,7 @@ class Parser {
     this.parsePath.pop()
     this.parsePostion.pop()
     this.program.loc.end = this.prevToken.loc.end
-    // console.log(this.program.statements)
+    // console.log(this.program.body)
     console.log(JSON.stringify(this.program, null, 2))
     debugger
   }

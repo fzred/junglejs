@@ -10,13 +10,13 @@ const jungle = require('../src').default
 //   }
 // }
 // `)
-// jungle(`
-// if(1==1){
-//   const a = 1
-// }else if(f){
+jungle(`
+if(1==1){
+  const a = 1
+}else if(f){
 
-// }else{}
-// `)
+}else{}
+`)
 // jungle(`
 // for(let i = 0; i < 10; i++) {
 //   a()
@@ -144,4 +144,5 @@ const jungle = require('../src').default
 // a[this].d
 // `)
 
-jungle(`abc ();`)
+// jungle(`const a= 1, b=2+43
+// ;`)

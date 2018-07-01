@@ -10,13 +10,13 @@ const jungle = require('../src').default
 //   }
 // }
 // `)
-jungle(`
-if(1==1){
-  const a = 1
-}else if(f){
+// jungle(`
+// if(1==1){
+//   const a = 1
+// }else if(f){
 
-}else{}
-`)
+// }else{}
+// `)
 // jungle(`
 // for(let i = 0; i < 10; i++) {
 //   a()
@@ -34,8 +34,8 @@ if(1==1){
 // [1,2,{a:333}];;;
 // `)
 
-// jungle(`
-// "use strict"
+// jungle(`"
+// use strict";
 // "use 2222"
 // 11
 // "use strict"
@@ -44,11 +44,12 @@ if(1==1){
 //   const a = []
 //   "use strict"
 // }
-
 // `)
 
 // jungle(`
 // debugger;
+// debugger
+// a;
 // `)
 
 // jungle(`

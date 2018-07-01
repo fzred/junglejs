@@ -93,22 +93,26 @@ class Parser {
       },
       [tokenTypes.IDENTIFIER]() {
         const name = caller.curToken.literal
-        caller.parsePostion.push(deepCopy(caller.curToken.loc))
+        const identifierLoc = deepCopy(caller.curToken.loc)
         if (caller.nextToken.tokenType === tokenTypes.INC_DEC) {
           caller.readToken()
+
           return new UpdateExpression({
             prefix: false,
             operator: caller.curToken.literal,
             argument: new Identifier({
               name,
+              loc: identifierLoc,
             }),
-            loc: caller.parsePostion.pop(),
+            loc: {
+              ...identifierLoc,
+              end: caller.curToken.loc.end,
+            },
           })
         }
-        const loc = caller.parsePostion.pop()
         return new Identifier({
           name,
-          loc: loc,
+          loc: identifierLoc,
         })
       },
       [tokenTypes.LEFT_PARENT]() {
@@ -152,6 +156,7 @@ class Parser {
   parseObjectExpression() {
     const props = {
       properties: [],
+      loc: deepCopy(this.curToken.loc),
     }
     this.readToken()
     while (this.curToken.tokenType !== tokenTypes.RIGHT_BRACE) {
@@ -159,6 +164,7 @@ class Parser {
         key: null,
         value: null,
         kind: 'init',
+        loc: deepCopy(this.curToken.loc),
       }
       if (
         this.curToken.tokenType === tokenTypes.STRING ||
@@ -168,6 +174,7 @@ class Parser {
       } else {
         propertyProps.key = new Identifier({
           name: this.curToken.literal,
+          loc: deepCopy(this.curToken.loc),
         })
       }
       this.readToken()
@@ -177,20 +184,24 @@ class Parser {
       }
       this.readToken()
       propertyProps.value = this.parseExpression()
+      propertyProps.loc.end = this.prevToken.loc.end
+      props.properties.push(new Property(propertyProps))
+
       if (this.curToken.tokenType === tokenTypes.COMMA) {
         this.readToken()
       }
-      props.properties.push(new Property(propertyProps))
     }
     if (this.curToken.tokenType !== tokenTypes.RIGHT_BRACE) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
+    props.loc.end = this.curToken.loc.end
     return new ObjectExpression(props)
   }
 
   parseArrayExpression() {
     const elements = []
+    const loc = deepCopy(this.curToken.loc)
     this.readToken()
     while (this.curToken.tokenType !== tokenTypes.RIGHT_SQUARE_BRACKET) {
       elements.push(this.parseExpression())
@@ -202,8 +213,10 @@ class Parser {
       // TODO 语法错误处理
       throw 'syntax error'
     }
+    loc.end = this.curToken.loc.end
     return new ArrayExpression({
       elements,
+      loc,
     })
   }
 
@@ -273,6 +286,10 @@ class Parser {
           computed,
           property,
           object: leftExp,
+          loc: {
+            start: leftExp.loc.start,
+            end: caller.curToken.loc.end,
+          },
         })
       } else {
         caller.readToken()
@@ -280,6 +297,7 @@ class Parser {
         if (caller.curToken.tokenType === tokenTypes.THIS) {
           property = new Identifier({
             name: 'this',
+            loc: deepCopy(caller.curToken.loc),
           })
         } else {
           if (caller.curToken.tokenType !== tokenTypes.IDENTIFIER) {
@@ -293,6 +311,10 @@ class Parser {
           computed,
           property,
           object: leftExp,
+          loc: {
+            start: leftExp.loc.start,
+            end: caller.curToken.loc.end,
+          },
         })
       }
     }
@@ -402,7 +424,7 @@ class Parser {
 
   parseExpressionStatement() {
     let isStr = this.curToken.tokenType === tokenTypes.STRING
-    this.parsePostion.push(deepCopy(this.curToken.loc))
+    const loc = deepCopy(this.curToken.loc)
     const expression = this.parseExpression()
     if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
       this.readToken()
@@ -413,29 +435,25 @@ class Parser {
     } else if (this.curParse.type === 'FunctionExpression') {
       isTop = this.curParse.body.findIndex(item => !item.directive) < 0
     }
-    if (
-      this.curToken.tokenType !== tokenTypes.RIGHT_BRACE &&
-      !this.isNewLine()
-    ) {
+    if (!this.isStatementEnd(this.curToken) && !this.isNewLine()) {
       throw 'syntax error'
     }
+    loc.end = this.prevToken.loc.end
     if (isStr && isTop) {
       return new Directive({
         expression,
+        loc,
         directive: expression.value,
       })
     }
 
     return new ExpressionStatement({
       expression,
-      loc: {
-        start: this.parsePostion.pop().start,
-        end: this.prevToken.loc.end,
-      },
+      loc,
     })
   }
 
-  parseVariableDeclaration() {
+  parseVariableDeclaration(autoReadNext = true) {
     const props = {
       kind: this.curToken.literal,
       declarations: [],
@@ -472,11 +490,13 @@ class Parser {
       )
     } while (this.curToken.tokenType === tokenTypes.COMMA)
 
-    if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
-      this.readToken()
-    } else if (!this.isStatementEnd(this.curToken) && !this.isNewLine()) {
-      // TODO 语法错误处理
-      throw 'syntax error'
+    if (autoReadNext) {
+      if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+        this.readToken()
+      } else if (!this.isStatementEnd(this.curToken) && !this.isNewLine()) {
+        // TODO 语法错误处理
+        throw 'syntax error'
+      }
     }
 
     props.loc.end = this.prevToken.loc.end
@@ -540,6 +560,7 @@ class Parser {
       // TODO 语法错误处理
       throw 'syntax error'
     }
+    const loc = deepCopy(this.curToken.loc)
     this.readToken()
     this.readToken()
     const test = this.parseExpression()
@@ -571,11 +592,12 @@ class Parser {
         alternate = this.parseBlockStatement()
       }
     }
-
+    loc.end = this.prevToken.loc.end
     return new IfStatement({
       test,
       consequence,
       alternate,
+      loc,
     })
   }
 
@@ -601,6 +623,7 @@ class Parser {
       test: null,
       update: null,
       body: [],
+      loc: this.parsePostion.pop(),
     }
     if (this.curToken !== tokenTypes.SEMICOLON) {
       props.test = this.parseExpression()
@@ -630,7 +653,7 @@ class Parser {
     props.body = this.parseBlockStatement()
 
     this.parsePath.pop()
-
+    props.loc.end = this.prevToken.loc.end
     return new ForStatement(props)
   }
 
@@ -678,6 +701,7 @@ class Parser {
       // TODO 语法错误处理
       throw 'syntax error'
     }
+    this.parsePostion.push(deepCopy(this.curToken.loc))
     this.readToken()
     this.readToken()
     if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
@@ -685,7 +709,7 @@ class Parser {
         case tokenTypes.LET:
         case tokenTypes.CONST:
         case tokenTypes.VAR:
-          init = this.parseVariableDeclaration()
+          init = this.parseVariableDeclaration(false)
           break
         default:
           init = this.parseExpression()
@@ -708,16 +732,19 @@ class Parser {
   }
 
   parseEmptyStatement() {
+    const loc = deepCopy(this.curToken.loc)
     this.readToken()
-    return new EmptyStatement({})
+    return new EmptyStatement({ loc })
   }
 
   parseDebuggerStatement() {
+    const loc = deepCopy(this.curToken.loc)
     this.readToken()
     if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+      loc.end = this.prevToken.loc.end
       this.readToken()
     }
-    return new DebuggerStatement({})
+    return new DebuggerStatement({ loc })
   }
 
   parseFunctionDeclaration() {
@@ -729,6 +756,7 @@ class Parser {
   }
 
   parseReturnStatement() {
+    const loc = deepCopy(this.curToken.loc)
     if (!this.parsePathClosest('FunctionExpression')) {
       // TODO 语法错误处理
       throw 'syntax error'
@@ -738,15 +766,18 @@ class Parser {
     if (!this.isStatementEnd(this.curToken) && !this.isNewLine()) {
       argument = this.parseExpression()
     }
+    loc.end = this.curToken.loc.end
     if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
       this.readToken()
     }
     return new ReturnStatement({
       argument,
+      loc,
     })
   }
 
   parseWithStatement() {
+    const loc = deepCopy(this.curToken.loc)
     if (this.isInStrictMode()) {
       // TODO 语法错误处理
       throw 'syntax error: in strict mode'
@@ -769,10 +800,11 @@ class Parser {
     this.readToken()
 
     const body = this.parseBlockStatement()
-
+    loc.end = this.prevToken.loc.end
     return new WithStatement({
       object,
       body,
+      loc,
     })
   }
 

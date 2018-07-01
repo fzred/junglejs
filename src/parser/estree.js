@@ -3,14 +3,15 @@
  */
 
 class Node {
-  constructor() {
+  constructor(props) {
     this.type = 'Node'
-    this.loc = null
+    this.loc = props.loc
   }
 }
 
-export class Statement {
+export class Statement extends Node {
   constructor(props) {
+    super(props)
     this.type = 'Statement'
   }
 }
@@ -62,15 +63,23 @@ export class ForStatement extends Statement {
   }
 }
 
-export class Pargarm {
-  constructor() {
-    this.token = 'Pargarm'
+export class Program extends Node {
+  constructor(props) {
+    super(props)
+    this.type = 'Pargarm'
     this.statements = []
   }
 }
 
-export class FunctionExpression {
+export class Expression extends Node {
   constructor(props) {
+    super(props)
+  }
+}
+
+export class FunctionExpression extends Expression {
+  constructor(props) {
+    super(props)
     this.type = 'FunctionExpression'
     this.params = props.params
     this.body = props.body
@@ -83,10 +92,6 @@ export class FunctionDeclaration extends FunctionExpression {
     this.type = 'FunctionDeclaration'
     this.id = props.id
   }
-}
-
-export class Expression {
-  constructor(props) {}
 }
 
 export class AssignmentExpression extends Statement {

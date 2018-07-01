@@ -1,6 +1,7 @@
 import tokenTypes from '../lexer/tokenTypes'
+import { deepCopy } from '../utils'
 import {
-  Pargarm,
+  Program,
   BlockStatement,
   IfStatement,
   Identifier,
@@ -65,7 +66,8 @@ class Parser {
     this.registerInfixParseFns()
 
     this.parsePath = []
-    this.pararm = new Pargarm()
+    this.parsePostion = []
+    this.program = null
     this.readToken()
     this.parse()
   }
@@ -307,6 +309,9 @@ class Parser {
   get nextToken() {
     return this.lexer.tokens[this.position]
   }
+  get prevToken() {
+    return this.lexer.tokens[this.position - 2]
+  }
 
   get curTokenPrecedence() {
     return this.precedences[this.curToken.tokenType] || 0
@@ -322,7 +327,7 @@ class Parser {
   isInStrictMode() {
     for (let i = this.parsePath.length - 1; i >= 0; i--) {
       const c = this.parsePath[i]
-      if (c.type === 'FunctionExpression' || c.type === 'pararm') {
+      if (c.type === 'FunctionExpression' || c.type === 'program') {
         if (
           c.body.findIndex(
             statement =>
@@ -387,7 +392,7 @@ class Parser {
       this.readToken()
     }
     let isTop = false
-    if (this.curParse.type === 'pararm') {
+    if (this.curParse.type === 'program') {
       isTop = this.curParse.body.findIndex(item => !item.directive) < 0
     } else if (this.curParse.type === 'FunctionExpression') {
       isTop = this.curParse.body.findIndex(item => !item.directive) < 0
@@ -1097,22 +1102,27 @@ class Parser {
   }
 
   parse() {
+    const loc = deepCopy(this.curToken.loc)
+    this.program = new Program({ loc })
     this.parsePath.push({
-      type: 'pararm',
-      body: this.pararm.statements,
+      type: 'program',
+      body: this.program.statements,
     })
+    this.parsePostion.push(loc)
     do {
       const statement = this.parseStatement()
       if (statement !== null) {
-        this.pararm.statements.push(statement)
+        this.program.statements.push(statement)
       }
     } while (
       this.curToken.tokenType !== tokenTypes.EOF &&
       this.curToken.tokenType !== tokenTypes.ILLEGAL
     )
     this.parsePath.pop()
-    // console.log(this.pararm.statements)
-    console.log(JSON.stringify(this.pararm.statements, null, 2))
+    this.parsePostion.pop()
+    this.program.loc.end = this.prevToken.loc.end
+    // console.log(this.program.statements)
+    console.log(JSON.stringify(this.program, null, 2))
     debugger
   }
 }

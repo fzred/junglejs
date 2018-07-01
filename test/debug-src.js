@@ -73,6 +73,7 @@ const jungle = require('../src').default
 // jungle(`
 // l:for(let a=0;i<3;i++){
 //   if(a){
+//     continue
 //     continue l;;
 //   }
 //   break l;
@@ -80,7 +81,7 @@ const jungle = require('../src').default
 // `)
 
 // jungle(`
-// a =1
+// a =1;
 // b=2
 // `)
 

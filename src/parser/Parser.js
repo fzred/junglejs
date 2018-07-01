@@ -223,11 +223,13 @@ class Parser {
   parseAssignmentExpression(leftExp) {
     const props = {
       left: leftExp,
-      operator: this.curToken,
+      operator: this.curToken.literal,
       right: null,
+      loc: deepCopy(leftExp.loc),
     }
     this.readToken()
     props.right = this.parseExpression(0, false)
+    props.loc.end = this.curToken.loc.end
     return new AssignmentExpression(props)
   }
 
@@ -812,6 +814,7 @@ class Parser {
     const props = {
       label: this.prefixParseFns[this.curToken.tokenType](),
       body: null,
+      loc: deepCopy(this.curToken.loc),
     }
     this.readToken()
     this.readToken()
@@ -822,12 +825,14 @@ class Parser {
     })
     props.body = this.parseStatement()
     this.parsePath.pop()
+    props.loc.end = this.prevToken.loc.end
     return new LabeledStatement(props)
   }
 
   parseContinueStatement() {
     const props = {
       label: null,
+      loc: deepCopy(this.curToken.loc),
     }
     if (!this.parsePathClosest('Loops', 'FunctionExpression')) {
       // TODO 语法错误处理
@@ -836,6 +841,7 @@ class Parser {
 
     this.readToken()
     if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+      props.loc.end = this.curToken.loc.end
       this.readToken()
     } else if (!this.isNewLine()) {
       if (this.curToken.tokenType !== tokenTypes.IDENTIFIER) {
@@ -856,8 +862,10 @@ class Parser {
       }
       props.label = this.prefixParseFns[this.curToken.tokenType]()
 
+      props.loc.end = this.curToken.loc.end
       this.readToken()
       if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+        props.loc.end = this.curToken.loc.end
         this.readToken()
       }
     }
@@ -868,6 +876,7 @@ class Parser {
   parseBreakStatement() {
     const props = {
       label: null,
+      loc: deepCopy(this.curToken.loc),
     }
     if (
       !this.parsePathClosest('Loops', 'FunctionExpression') &&
@@ -879,6 +888,7 @@ class Parser {
 
     this.readToken()
     if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+      props.loc.end = this.curToken.loc.end
       this.readToken()
     } else if (!this.isNewLine()) {
       if (this.curToken.tokenType !== tokenTypes.IDENTIFIER) {
@@ -899,8 +909,10 @@ class Parser {
       }
       props.label = this.prefixParseFns[this.curToken.tokenType]()
 
+      props.loc.end = this.curToken.loc.end
       this.readToken()
       if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+        props.loc.end = this.curToken.loc.end
         this.readToken()
       }
     }
@@ -912,6 +924,7 @@ class Parser {
     const switchProps = {
       discriminant: null,
       cases: [],
+      loc: deepCopy(this.curToken.loc),
     }
     this.parsePath.push({
       type: 'SwitchStatement',
@@ -938,13 +951,16 @@ class Parser {
       this.curToken.tokenType === tokenTypes.CASE ||
       this.curToken.tokenType === tokenTypes.DEFAULT
     ) {
-      const isDefault = this.curToken.tokenType === tokenTypes.DEFAULT
-
-      this.readToken()
       const caseProps = {
         test: null,
         consequent: [],
+        loc: deepCopy(this.curToken.loc),
       }
+
+      const isDefault = this.curToken.tokenType === tokenTypes.DEFAULT
+
+      this.readToken()
+
       if (!isDefault) {
         caseProps.test = this.parseExpression()
       }
@@ -963,6 +979,7 @@ class Parser {
           caseProps.consequent.push(statement)
         }
       }
+      caseProps.loc.end = this.prevToken.loc.end
       switchProps.cases.push(new SwitchCase(caseProps))
       if (isDefault) {
         break
@@ -973,6 +990,7 @@ class Parser {
       // TODO 语法错误处理
       throw 'syntax error'
     }
+    switchProps.loc.end = this.curToken.loc.end
     this.readToken()
     this.parsePath.pop()
     return new SwitchStatement(switchProps)
@@ -980,16 +998,20 @@ class Parser {
 
   parseThrowStatement() {
     let argument = null
+    const loc = deepCopy(this.curToken.loc)
     this.readToken()
     if (this.isStatementEnd(this.curToken) || this.isNewLine()) {
       throw 'syntax error'
     }
     argument = this.parseExpression()
+    loc.end = this.curToken.loc.end
     if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+      loc.end = this.curToken.loc.end
       this.readToken()
     }
     return new ThrowStatement({
       argument,
+      loc,
     })
   }
 

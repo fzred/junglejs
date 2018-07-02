@@ -143,7 +143,9 @@ class Parser {
         })
       },
       [tokenTypes.THIS]() {
-        return new ThisExpression({})
+        return new ThisExpression({
+          loc: deepCopy(caller.curToken.loc),
+        })
       },
       [tokenTypes.FUNCTION]: caller.parseFunctionExpression.bind(caller, true),
       [tokenTypes.LEFT_BRACE]: caller.parseObjectExpression.bind(caller),
@@ -669,6 +671,7 @@ class Parser {
       left,
       right: null,
       body: null,
+      loc: this.parsePostion.pop(),
     }
 
     this.readToken()
@@ -689,6 +692,7 @@ class Parser {
     })
 
     props.body = this.parseBlockStatement()
+    props.loc.end = this.prevToken.loc.end
 
     this.parsePath.pop()
     if (isOf) {
@@ -1020,6 +1024,7 @@ class Parser {
       block: null,
       handler: null,
       finalizer: null,
+      loc: deepCopy(this.curToken.loc),
     }
     if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
       // TODO 语法错误处理
@@ -1033,6 +1038,7 @@ class Parser {
       const catchProps = {
         param: null,
         body: null,
+        loc: deepCopy(this.curToken.loc),
       }
       const parseIDENTIFIER = this.prefixParseFns[tokenTypes.IDENTIFIER]
       if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
@@ -1054,6 +1060,7 @@ class Parser {
       this.readToken()
 
       catchProps.body = this.parseBlockStatement()
+      catchProps.loc.end = this.prevToken.loc.end
       tryProps.handler = new CatchClause(catchProps)
     }
     if (this.curToken.tokenType === tokenTypes.FINALLY) {
@@ -1071,6 +1078,7 @@ class Parser {
       // TODO 语法错误处理
       throw 'syntax error'
     }
+    tryProps.loc.end = this.prevToken.loc.end
     return new TryStatement(tryProps)
   }
 
@@ -1078,6 +1086,7 @@ class Parser {
     const props = {
       test: null,
       body: null,
+      loc: deepCopy(this.curToken.loc),
     }
     this.parsePath.push({
       type: 'Loops',
@@ -1101,6 +1110,7 @@ class Parser {
     this.readToken()
 
     props.body = this.parseBlockStatement()
+    props.loc.end = this.prevToken.loc.end
 
     this.parsePath.pop()
     return new WhileStatement(props)
@@ -1110,6 +1120,7 @@ class Parser {
     const props = {
       test: null,
       body: null,
+      loc: deepCopy(this.curToken.loc),
     }
     this.parsePath.push({
       type: 'Loops',
@@ -1137,6 +1148,7 @@ class Parser {
       throw 'syntax error'
     }
     this.readToken()
+    props.loc.end = this.prevToken.loc.end
 
     this.parsePath.pop()
     return new DoWhileStatement(props)
@@ -1195,7 +1207,6 @@ class Parser {
       type: 'program',
       body: this.program.body,
     })
-    this.parsePostion.push(loc)
     do {
       const statement = this.parseStatement()
       if (statement !== null) {
@@ -1206,7 +1217,6 @@ class Parser {
       this.curToken.tokenType !== tokenTypes.ILLEGAL
     )
     this.parsePath.pop()
-    this.parsePostion.pop()
     this.program.loc.end = this.prevToken.loc.end
     // console.log(this.program.body)
     console.log(JSON.stringify(this.program, null, 2))

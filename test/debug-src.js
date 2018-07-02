@@ -148,3 +148,12 @@ const jungle = require('../src').default
 
 // jungle(`const a= 1, b=2+43
 // ;`)
+
+// jungle(`
+// ++aa
+// `)
+
+jungle(`({
+  get ff(){}
+})
+`)

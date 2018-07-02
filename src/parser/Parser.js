@@ -77,14 +77,17 @@ class Parser {
     this.prefixParseFns = {
       [tokenTypes.INC_DEC]() {
         const operator = caller.curToken.literal
+        const loc = deepCopy(caller.curToken.loc)
         if (caller.nextToken.tokenType !== tokenTypes.IDENTIFIER) {
           // TODO 语法错误处理
           throw 'syntax error'
         }
         caller.readToken()
+        loc.end = caller.curToken.loc.end
         return new UpdateExpression({
           prefix: true,
           operator,
+          loc,
           argument: {
             type: 'Identifier',
             name: caller.curToken.literal,
@@ -168,6 +171,10 @@ class Parser {
         kind: 'init',
         loc: deepCopy(this.curToken.loc),
       }
+      if (this.curToken.literal === 'get' || this.curToken.literal === 'set') {
+        propertyProps.kind = this.curToken.literal
+        this.readToken()
+      }
       if (
         this.curToken.tokenType === tokenTypes.STRING ||
         this.curToken.tokenType === tokenTypes.NUMBER
@@ -186,7 +193,7 @@ class Parser {
       }
       this.readToken()
       propertyProps.value = this.parseExpression()
-      propertyProps.loc.end = this.prevToken.loc.end
+      propertyProps.loc.end = propertyProps.value.loc.end
       props.properties.push(new Property(propertyProps))
 
       if (this.curToken.tokenType === tokenTypes.COMMA) {

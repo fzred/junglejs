@@ -187,12 +187,31 @@ class Parser {
         })
       }
       this.readToken()
-      if (this.curToken.tokenType !== tokenTypes.COLON) {
+      if (this.curToken.tokenType === tokenTypes.LEFT_PARENT) {
+        propertyProps.value = this.parseFunctionExpression(true, true)
+      } else if (this.curToken.tokenType === tokenTypes.COLON) {
+        this.readToken()
+        propertyProps.value = this.parseExpression()
+      } else {
         // TODO 语法错误处理
         throw 'syntax error'
       }
-      this.readToken()
-      propertyProps.value = this.parseExpression()
+      if (
+        propertyProps.kind === 'get' &&
+        (propertyProps.value.type !== 'FunctionExpression' ||
+          propertyProps.value.params.length > 0)
+      ) {
+        // TODO 语法错误处理
+        throw 'syntax error'
+      }
+      if (
+        propertyProps.kind === 'set' &&
+        (propertyProps.value.type !== 'FunctionExpression' ||
+          propertyProps.value.params.length !== 1)
+      ) {
+        // TODO 语法错误处理
+        throw 'syntax error'
+      }
       propertyProps.loc.end = propertyProps.value.loc.end
       props.properties.push(new Property(propertyProps))
 
@@ -514,7 +533,7 @@ class Parser {
     return new VariableDeclaration(props)
   }
 
-  parseFunctionExpression(expParseMode = false) {
+  parseFunctionExpression(expParseMode = false, short = false) {
     const props = {
       id: null,
       body: [],
@@ -522,16 +541,18 @@ class Parser {
       loc: deepCopy(this.curToken.loc),
     }
     const parseIDENTIFIER = this.prefixParseFns[tokenTypes.IDENTIFIER]
-    if (this.nextToken.tokenType === tokenTypes.IDENTIFIER) {
+    if (!short) {
+      if (this.nextToken.tokenType === tokenTypes.IDENTIFIER) {
+        this.readToken()
+        props.id = parseIDENTIFIER()
+      }
       this.readToken()
-      props.id = parseIDENTIFIER()
     }
 
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+    if (this.curToken.tokenType !== tokenTypes.LEFT_PARENT) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
-    this.readToken()
     while (this.nextToken.tokenType !== tokenTypes.RIGHT_PARENT) {
       this.readToken()
       props.params.push(parseIDENTIFIER())

@@ -64,4 +64,10 @@ export default {
   OF: 'OF',
 
   THIS: 'THIS',
+
+  TILDE: 'TILDE',
+
+  TYPEOF: 'TYPEOF',
+  VOID: 'VOID',
+  DELETE: 'DELETE',
 }

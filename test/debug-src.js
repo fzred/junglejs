@@ -153,7 +153,11 @@ const jungle = require('../src').default
 // ++aa
 // `)
 
-jungle(`({
-  get ff(){}
-})
-`)
+// jungle(`({
+//   get ff(){}
+// })
+// `)
+
+// jungle(`
+// -1 + typeof 1 + d + delete 2 * void (dd)
+// `)

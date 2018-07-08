@@ -41,6 +41,14 @@ import {
   UnaryExpression,
 } from './estree'
 
+function judgeAST(token, value) {
+  return (
+    (token.type === tokenTypes.Keyword ||
+      token.type === tokenTypes.Punctuator) &&
+    token.value === value
+  )
+}
+
 class Parser {
   constructor(lexer) {
     console.log(lexer.tokens)
@@ -77,9 +85,9 @@ class Parser {
     const caller = this
     this.prefixParseFns = {
       [tokenTypes.INC_DEC]() {
-        const operator = caller.curToken.literal
+        const operator = caller.curToken.value
         const loc = deepCopy(caller.curToken.loc)
-        if (caller.nextToken.tokenType !== tokenTypes.IDENTIFIER) {
+        if (caller.nextToken.type !== tokenTypes.IDENTIFIER) {
           // TODO 语法错误处理
           throw 'syntax error'
         }
@@ -91,19 +99,19 @@ class Parser {
           loc,
           argument: {
             type: 'Identifier',
-            name: caller.curToken.literal,
+            name: caller.curToken.value,
           },
         })
       },
       [tokenTypes.IDENTIFIER]() {
-        const name = caller.curToken.literal
+        const name = caller.curToken.value
         const identifierLoc = deepCopy(caller.curToken.loc)
-        if (caller.nextToken.tokenType === tokenTypes.INC_DEC) {
+        if (caller.nextToken.type === tokenTypes.INC_DEC) {
           caller.readToken()
 
           return new UpdateExpression({
             prefix: false,
-            operator: caller.curToken.literal,
+            operator: caller.curToken.value,
             argument: new Identifier({
               name,
               loc: identifierLoc,
@@ -122,7 +130,7 @@ class Parser {
       [tokenTypes.LEFT_PARENT]() {
         caller.readToken()
         const exp = caller.parseExpression()
-        if (caller.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+        if (!judgeAST(caller.curToken, ')')) {
           // TODO 语法错误处理
           throw 'syntax error'
         }
@@ -130,19 +138,19 @@ class Parser {
       },
       [tokenTypes.NUMBER]() {
         return new Literal({
-          value: Number(caller.curToken.literal),
+          value: Number(caller.curToken.value),
           loc: deepCopy(caller.curToken.loc),
         })
       },
       [tokenTypes.STRING]() {
         return new Literal({
-          value: String(caller.curToken.literal),
+          value: String(caller.curToken.value),
           loc: deepCopy(caller.curToken.loc),
         })
       },
       [tokenTypes.BOOLEAN]() {
         return new Literal({
-          value: caller.curToken.literal === 'true',
+          value: caller.curToken.value === 'true',
           loc: deepCopy(caller.curToken.loc),
         })
       },
@@ -169,7 +177,7 @@ class Parser {
   parseUnaryExpression() {
     const props = {
       loc: deepCopy(this.curToken.loc),
-      operator: this.curToken.literal,
+      operator: this.curToken.value,
       prefix: true,
       argument: null,
     }
@@ -185,32 +193,32 @@ class Parser {
       loc: deepCopy(this.curToken.loc),
     }
     this.readToken()
-    while (this.curToken.tokenType !== tokenTypes.RIGHT_BRACE) {
+    while (!judgeAST(this.curToken, '}')) {
       const propertyProps = {
         key: null,
         value: null,
         kind: 'init',
         loc: deepCopy(this.curToken.loc),
       }
-      if (this.curToken.literal === 'get' || this.curToken.literal === 'set') {
-        propertyProps.kind = this.curToken.literal
+      if (this.curToken.value === 'get' || this.curToken.value === 'set') {
+        propertyProps.kind = this.curToken.value
         this.readToken()
       }
       if (
-        this.curToken.tokenType === tokenTypes.STRING ||
-        this.curToken.tokenType === tokenTypes.NUMBER
+        this.curToken.type === tokenTypes.STRING ||
+        this.curToken.type === tokenTypes.NUMBER
       ) {
         propertyProps.key = this.prefixParseFns[this.curToken.tokenType]()
       } else {
         propertyProps.key = new Identifier({
-          name: this.curToken.literal,
+          name: this.curToken.value,
           loc: deepCopy(this.curToken.loc),
         })
       }
       this.readToken()
-      if (this.curToken.tokenType === tokenTypes.LEFT_PARENT) {
+      if (judgeAST(this.curToken, '(')) {
         propertyProps.value = this.parseFunctionExpression(true, true)
-      } else if (this.curToken.tokenType === tokenTypes.COLON) {
+      } else if (judgeAST(this.curToken, ':')) {
         this.readToken()
         propertyProps.value = this.parseExpression()
       } else {
@@ -236,11 +244,11 @@ class Parser {
       propertyProps.loc.end = propertyProps.value.loc.end
       props.properties.push(new Property(propertyProps))
 
-      if (this.curToken.tokenType === tokenTypes.COMMA) {
+      if (judgeAST(this.curToken, ',')) {
         this.readToken()
       }
     }
-    if (this.curToken.tokenType !== tokenTypes.RIGHT_BRACE) {
+    if (!judgeAST(this.curToken, '}')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -252,13 +260,13 @@ class Parser {
     const elements = []
     const loc = deepCopy(this.curToken.loc)
     this.readToken()
-    while (this.curToken.tokenType !== tokenTypes.RIGHT_SQUARE_BRACKET) {
+    while (!judgeAST(this.curToken, ']')) {
       elements.push(this.parseExpression())
-      if (this.curToken.tokenType === tokenTypes.COMMA) {
+      if (judgeAST(this.curToken, ',')) {
         this.readToken()
       }
     }
-    if (this.curToken.tokenType !== tokenTypes.RIGHT_SQUARE_BRACKET) {
+    if (!judgeAST(this.curToken, ']')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -272,7 +280,7 @@ class Parser {
   parseAssignmentExpression(leftExp) {
     const props = {
       left: leftExp,
-      operator: this.curToken.literal,
+      operator: this.curToken.value,
       right: null,
       loc: deepCopy(leftExp.loc),
     }
@@ -285,7 +293,7 @@ class Parser {
   registerInfixParseFns() {
     const caller = this
     function infixParse(leftExp) {
-      const operator = caller.curToken.literal
+      const operator = caller.curToken.value
       const precedence = caller.curTokenPrecedence
       caller.readToken()
       const rightExp = caller.parseExpression(precedence, false)
@@ -302,10 +310,10 @@ class Parser {
     function callParse(leftExp) {
       const argument = []
       caller.readToken()
-      while (caller.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+      while (!judgeAST(caller.curToken, ')')) {
         argument.push(caller.parseExpression())
-        if (caller.curToken.tokenType === tokenTypes.COMMA) {
-          if (caller.nextToken.tokenType === tokenTypes.RIGHT_PARENT) {
+        if (judgeAST(caller.curToken, ',')) {
+          if (judgeAST(caller.nextToken, ')')) {
             // TODO 语法错误处理
             throw 'syntax error'
           }
@@ -322,13 +330,13 @@ class Parser {
     }
     function parseMemberExpression(computed, leftExp) {
       if (computed) {
-        if (caller.nextToken.tokenType === tokenTypes.RIGHT_SQUARE_BRACKET) {
+        if (judgeAST(caller.nextToken, ']')) {
           // TODO 语法错误处理
           throw 'syntax error'
         }
         caller.readToken()
         const property = caller.parseExpression()
-        if (caller.curToken.tokenType !== tokenTypes.RIGHT_SQUARE_BRACKET) {
+        if (!judgeAST(caller.curToken, ']')) {
           // TODO 语法错误处理
           throw 'syntax error'
         }
@@ -345,13 +353,13 @@ class Parser {
       } else {
         caller.readToken()
         let property
-        if (caller.curToken.tokenType === tokenTypes.THIS) {
+        if (judgeAST(caller.curToken, 'this')) {
           property = new Identifier({
             name: 'this',
             loc: deepCopy(caller.curToken.loc),
           })
         } else {
-          if (caller.curToken.tokenType !== tokenTypes.IDENTIFIER) {
+          if (caller.curToken.type !== tokenTypes.IDENTIFIER) {
             // TODO 语法错误处理
             throw 'syntax error'
           }
@@ -440,16 +448,16 @@ class Parser {
 
   isStatementEnd(token) {
     return (
-      token.tokenType === tokenTypes.SEMICOLON ||
-      token.tokenType === tokenTypes.EOF ||
-      token.tokenType === tokenTypes.RIGHT_BRACE ||
-      token.tokenType === tokenTypes.RIGHT_PARENT
+      token.type === tokenTypes.EOF ||
+      judgeAST(token, ';') ||
+      judgeAST(token, '}') ||
+      judgeAST(token, ')')
     )
   }
 
   isNewLine(position = this.position) {
     return (
-      this.curToken.tokenType === tokenTypes.EOF ||
+      this.curToken.type === tokenTypes.EOF ||
       this.lexer.tokens[position - 1].loc.start.line >
         this.lexer.tokens[position - 2].loc.end.line
     )
@@ -458,7 +466,7 @@ class Parser {
   parseExpression(precedence = 0, autoReadNext = true) {
     let letExp = this.prefixParseFns[this.curToken.tokenType]()
     while (
-      this.curToken.tokenType !== tokenTypes.EOF &&
+      this.curToken.type !== tokenTypes.EOF &&
       !this.isStatementEnd(this.nextToken) &&
       this.nextTokenPrecedence > precedence
     ) {
@@ -474,10 +482,10 @@ class Parser {
   }
 
   parseExpressionStatement() {
-    let isStr = this.curToken.tokenType === tokenTypes.STRING
+    let isStr = this.curToken.type === tokenTypes.STRING
     const loc = deepCopy(this.curToken.loc)
     const expression = this.parseExpression()
-    if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+    if (judgeAST(this.curToken, ';')) {
       this.readToken()
     }
     let isTop = false
@@ -506,7 +514,7 @@ class Parser {
 
   parseVariableDeclaration(autoReadNext = true) {
     const props = {
-      kind: this.curToken.literal,
+      kind: this.curToken.value,
       declarations: [],
       loc: deepCopy(this.curToken.loc),
     }
@@ -514,18 +522,18 @@ class Parser {
     do {
       this.readToken()
       const locVariableDeclarator = deepCopy(this.curToken.loc)
-      if (this.curToken.tokenType !== tokenTypes.IDENTIFIER) {
+      if (this.curToken.type !== tokenTypes.IDENTIFIER) {
         // TODO 语法错误处理
         throw 'syntax error'
       }
 
       const identifier = this.prefixParseFns[this.curToken.tokenType]()
-      if (this.nextToken.tokenType !== tokenTypes.ASSIGN_SIGN) {
+      this.readToken()
+      if (!judgeAST(this.curToken, '=')) {
         // TODO 语法错误处理
         throw 'syntax error'
       }
 
-      this.readToken()
       this.readToken()
 
       const expression = this.parseExpression()
@@ -539,10 +547,10 @@ class Parser {
           },
         })
       )
-    } while (this.curToken.tokenType === tokenTypes.COMMA)
+    } while (judgeAST(this.curToken, ','))
 
     if (autoReadNext) {
-      if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+      if (judgeAST(this.curToken, ';')) {
         this.readToken()
       } else if (!this.isStatementEnd(this.curToken) && !this.isNewLine()) {
         // TODO 语法错误处理
@@ -563,30 +571,30 @@ class Parser {
     }
     const parseIDENTIFIER = this.prefixParseFns[tokenTypes.IDENTIFIER]
     if (!short) {
-      if (this.nextToken.tokenType === tokenTypes.IDENTIFIER) {
+      if (this.nextToken.type === tokenTypes.IDENTIFIER) {
         this.readToken()
         props.id = parseIDENTIFIER()
       }
       this.readToken()
     }
 
-    if (this.curToken.tokenType !== tokenTypes.LEFT_PARENT) {
+    if (!judgeAST(this.curToken, '(')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
-    while (this.nextToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+    while (!judgeAST(this.nextToken, ')')) {
       this.readToken()
       props.params.push(parseIDENTIFIER())
-      if (this.nextToken.tokenType === tokenTypes.COMMA) {
+      if (judgeAST(this.nextToken, ',')) {
         this.readToken()
-        if (this.nextToken.tokenType === tokenTypes.RIGHT_PARENT) {
+        if (judgeAST(this.nextToken, ')')) {
           // TODO 语法错误处理
           throw 'syntax error'
         }
       }
     }
     this.readToken()
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+    if (!judgeAST(this.nextToken, '{')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -609,7 +617,7 @@ class Parser {
   }
 
   parseIfStatement() {
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+    if (!judgeAST(this.nextToken, '(')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -617,11 +625,11 @@ class Parser {
     this.readToken()
     this.readToken()
     const test = this.parseExpression()
-    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+    if (!judgeAST(this.curToken, ')')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+    if (!judgeAST(this.nextToken, '{')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -630,14 +638,14 @@ class Parser {
     const consequence = this.parseBlockStatement()
 
     let alternate = null
-    if (this.curToken.tokenType === tokenTypes.ELSE) {
+    if (judgeAST(this.curToken, 'else')) {
       // parse else if
-      if (this.nextToken.tokenType === tokenTypes.IF) {
+      if (judgeAST(this.nextToken, 'if')) {
         this.readToken()
         alternate = this.parseIfStatement()
       } else {
         // parse else
-        if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+        if (!judgeAST(this.nextToken, '{')) {
           // TODO 语法错误处理
           throw 'syntax error'
         }
@@ -657,7 +665,7 @@ class Parser {
   parseBlockStatement(body = []) {
     const loc = deepCopy(this.curToken.loc)
     this.readToken()
-    while (this.curToken.tokenType !== tokenTypes.RIGHT_BRACE) {
+    while (!judgeAST(this.curToken, '}')) {
       const statement = this.parseStatement()
       if (statement !== null) {
         body.push(statement)
@@ -678,23 +686,23 @@ class Parser {
       body: [],
       loc: this.parsePostion.pop(),
     }
-    if (this.curToken !== tokenTypes.SEMICOLON) {
+    if (!judgeAST(this.curToken, ';')) {
       props.test = this.parseExpression()
     }
-    if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
+    if (!judgeAST(this.curToken, ';')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
     this.readToken()
-    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+    if (!judgeAST(this.curToken, ')')) {
       props.update = this.parseExpression()
     }
-    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+    if (!judgeAST(this.curToken, ')')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
     this.readToken()
-    if (this.curToken.tokenType !== tokenTypes.LEFT_BRACE) {
+    if (!judgeAST(this.curToken, '{')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -725,12 +733,12 @@ class Parser {
 
     this.readToken()
     props.right = this.parseExpression()
-    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+    if (!judgeAST(this.curToken, ')')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
     this.readToken()
-    if (this.curToken.tokenType !== tokenTypes.LEFT_BRACE) {
+    if (!judgeAST(this.curToken, '{')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -752,32 +760,32 @@ class Parser {
 
   parseFor() {
     let init = null
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+    if (!judgeAST(this.nextToken, '(')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
     this.parsePostion.push(deepCopy(this.curToken.loc))
     this.readToken()
     this.readToken()
-    if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
-      switch (this.curToken.tokenType) {
-        case tokenTypes.LET:
-        case tokenTypes.CONST:
-        case tokenTypes.VAR:
-          init = this.parseVariableDeclaration(false)
-          break
-        default:
-          init = this.parseExpression()
+    if (!judgeAST(this.curToken, ';')) {
+      if (
+        judgeAST(this.curToken, 'let') ||
+        judgeAST(this.curToken, 'const') ||
+        judgeAST(this.curToken, 'var')
+      ) {
+        init = this.parseVariableDeclaration(false)
+      } else {
+        init = this.parseExpression()
       }
     } else {
       this.readToken()
       return this.parseForStatement(init)
     }
-    if (this.curToken.tokenType === tokenTypes.IN) {
+    if (judgeAST(this.curToken, 'in')) {
       return this.parseForInStatement(init)
-    } else if (this.curToken.tokenType === tokenTypes.OF) {
+    } else if (judgeAST(this.curToken, 'of')) {
       return this.parseForInStatement(init, true)
-    } else if (this.curToken.tokenType !== tokenTypes.SEMICOLON) {
+    } else if (!judgeAST(this.curToken, ';')) {
       // TODO 语法错误处理
       throw 'syntax error'
     } else {
@@ -795,7 +803,7 @@ class Parser {
   parseDebuggerStatement() {
     const loc = deepCopy(this.curToken.loc)
     this.readToken()
-    if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+    if (judgeAST(this.curToken, ';')) {
       loc.end = this.prevToken.loc.end
       this.readToken()
     }
@@ -822,7 +830,7 @@ class Parser {
       argument = this.parseExpression()
     }
     loc.end = this.curToken.loc.end
-    if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+    if (judgeAST(this.curToken, ';')) {
       this.readToken()
     }
     return new ReturnStatement({
@@ -837,18 +845,18 @@ class Parser {
       // TODO 语法错误处理
       throw 'syntax error: in strict mode'
     }
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+    if (!judgeAST(this.nextToken, '(')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
     this.readToken()
     this.readToken()
     const object = this.parseExpression()
-    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+    if (!judgeAST(this.curToken, ')')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+    if (!judgeAST(this.nextToken, '{')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -893,11 +901,11 @@ class Parser {
     }
 
     this.readToken()
-    if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+    if (judgeAST(this.curToken, ';')) {
       props.loc.end = this.curToken.loc.end
       this.readToken()
     } else if (!this.isNewLine()) {
-      if (this.curToken.tokenType !== tokenTypes.IDENTIFIER) {
+      if (this.curToken.type !== tokenTypes.IDENTIFIER) {
         // TODO 语法错误处理
         throw 'syntax error: require IDENTIFIER'
       }
@@ -909,7 +917,7 @@ class Parser {
         // TODO 语法错误处理
         throw 'syntax error: require in labelStatement'
       }
-      if (this.curToken.literal !== label.label.name) {
+      if (this.curToken.value !== label.label.name) {
         // TODO 语法错误处理
         throw 'syntax error: label name not consistent'
       }
@@ -917,7 +925,7 @@ class Parser {
 
       props.loc.end = this.curToken.loc.end
       this.readToken()
-      if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+      if (judgeAST(this.curToken, ';')) {
         props.loc.end = this.curToken.loc.end
         this.readToken()
       }
@@ -940,11 +948,11 @@ class Parser {
     }
 
     this.readToken()
-    if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+    if (judgeAST(this.curToken, ';')) {
       props.loc.end = this.curToken.loc.end
       this.readToken()
     } else if (!this.isNewLine()) {
-      if (this.curToken.tokenType !== tokenTypes.IDENTIFIER) {
+      if (this.curToken.type !== tokenTypes.IDENTIFIER) {
         // TODO 语法错误处理
         throw 'syntax error: require IDENTIFIER'
       }
@@ -956,7 +964,7 @@ class Parser {
         // TODO 语法错误处理
         throw 'syntax error: require in labelStatement'
       }
-      if (this.curToken.literal !== label.label.name) {
+      if (this.curToken.value !== label.label.name) {
         // TODO 语法错误处理
         throw 'syntax error: label name not consistent'
       }
@@ -964,7 +972,7 @@ class Parser {
 
       props.loc.end = this.curToken.loc.end
       this.readToken()
-      if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+      if (judgeAST(this.curToken, ';')) {
         props.loc.end = this.curToken.loc.end
         this.readToken()
       }
@@ -982,18 +990,18 @@ class Parser {
     this.parsePath.push({
       type: 'SwitchStatement',
     })
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+    if (!judgeAST(this.nextToken, '(')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
     this.readToken()
     this.readToken()
     switchProps.discriminant = this.parseExpression()
-    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+    if (!judgeAST(this.curToken, ')')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+    if (!judgeAST(this.nextToken, '{')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -1001,8 +1009,8 @@ class Parser {
     this.readToken()
 
     while (
-      this.curToken.tokenType === tokenTypes.CASE ||
-      this.curToken.tokenType === tokenTypes.DEFAULT
+      judgeAST(this.curToken, 'case') ||
+      judgeAST(this.curToken, 'default')
     ) {
       const caseProps = {
         test: null,
@@ -1010,22 +1018,22 @@ class Parser {
         loc: deepCopy(this.curToken.loc),
       }
 
-      const isDefault = this.curToken.tokenType === tokenTypes.DEFAULT
+      const isDefault = judgeAST(this.curToken, 'default')
 
       this.readToken()
 
       if (!isDefault) {
         caseProps.test = this.parseExpression()
       }
-      if (this.curToken.tokenType !== tokenTypes.COLON) {
+      if (judgeAST(this.curToken, ':')) {
         // TODO 语法错误处理
         throw 'syntax error'
       }
       this.readToken()
       while (
-        this.curToken.tokenType !== tokenTypes.CASE &&
-        this.curToken.tokenType !== tokenTypes.DEFAULT &&
-        this.curToken.tokenType !== tokenTypes.RIGHT_BRACE
+        !judgeAST(this.curToken, 'case') &&
+        !judgeAST(this.curToken, 'default') &&
+        !judgeAST(this.curToken, '}')
       ) {
         const statement = this.parseStatement()
         if (statement !== null) {
@@ -1039,7 +1047,7 @@ class Parser {
       }
     }
 
-    if (this.curToken.tokenType !== tokenTypes.RIGHT_BRACE) {
+    if (!judgeAST(this.curToken, '}')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -1058,7 +1066,7 @@ class Parser {
     }
     argument = this.parseExpression()
     loc.end = this.curToken.loc.end
-    if (this.curToken.tokenType === tokenTypes.SEMICOLON) {
+    if (judgeAST(this.curToken, ';')) {
       loc.end = this.curToken.loc.end
       this.readToken()
     }
@@ -1075,7 +1083,7 @@ class Parser {
       finalizer: null,
       loc: deepCopy(this.curToken.loc),
     }
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+    if (!judgeAST(this.nextToken, '{')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -1083,26 +1091,26 @@ class Parser {
 
     tryProps.block = this.parseBlockStatement()
 
-    if (this.curToken.tokenType === tokenTypes.CATCH) {
+    if (judgeAST(this.curToken, 'catch')) {
       const catchProps = {
         param: null,
         body: null,
         loc: deepCopy(this.curToken.loc),
       }
       const parseIDENTIFIER = this.prefixParseFns[tokenTypes.IDENTIFIER]
-      if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+      if (!judgeAST(this.nextToken, '(')) {
         // TODO 语法错误处理
         throw 'syntax error'
       }
       this.readToken()
       this.readToken()
       catchProps.param = parseIDENTIFIER(this.curToken)
-      if (this.nextToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+      if (this.nextToken.type !== ')') {
         // TODO 语法错误处理
         throw 'syntax error'
       }
       this.readToken()
-      if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+      if (!judgeAST(this.nextToken, '{')) {
         // TODO 语法错误处理
         throw 'syntax error'
       }
@@ -1112,8 +1120,8 @@ class Parser {
       catchProps.loc.end = this.prevToken.loc.end
       tryProps.handler = new CatchClause(catchProps)
     }
-    if (this.curToken.tokenType === tokenTypes.FINALLY) {
-      if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+    if (judgeAST(this.curToken, 'finally')) {
+      if (!judgeAST(this.nextToken, '{')) {
         // TODO 语法错误处理
         throw 'syntax error'
       }
@@ -1140,7 +1148,7 @@ class Parser {
     this.parsePath.push({
       type: 'Loops',
     })
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+    if (!judgeAST(this.nextToken, '(')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -1148,11 +1156,11 @@ class Parser {
     this.readToken()
     this.readToken()
     props.test = this.parseExpression()
-    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+    if (!judgeAST(this.curToken, ')')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+    if (!judgeAST(this.nextToken, '{')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -1174,17 +1182,17 @@ class Parser {
     this.parsePath.push({
       type: 'Loops',
     })
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_BRACE) {
+    if (!judgeAST(this.nextToken, '{')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
     this.readToken()
     props.body = this.parseBlockStatement()
-    if (this.curToken.tokenType !== tokenTypes.WHILE) {
+    if (judgeAST(this.curToken, 'while')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
-    if (this.nextToken.tokenType !== tokenTypes.LEFT_PARENT) {
+    if (!judgeAST(this.nextToken, '(')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -1192,7 +1200,7 @@ class Parser {
     this.readToken()
     this.readToken()
     props.test = this.parseExpression()
-    if (this.curToken.tokenType !== tokenTypes.RIGHT_PARENT) {
+    if (!judgeAST(this.curToken, ')')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -1204,49 +1212,52 @@ class Parser {
   }
 
   parseStatement() {
-    switch (this.curToken.tokenType) {
-      case tokenTypes.LET:
-      case tokenTypes.CONST:
-      case tokenTypes.VAR:
-        return this.parseVariableDeclaration()
-      case tokenTypes.SEMICOLON:
-        return this.parseEmptyStatement()
-      case tokenTypes.IF:
-        return this.parseIfStatement()
-      case tokenTypes.FUNCTION:
-        return this.parseFunctionDeclaration()
-      case tokenTypes.FOR:
-        return this.parseFor()
-      case tokenTypes.LEFT_BRACE:
-        return this.parseBlockStatement()
-      case tokenTypes.DEBUGGER:
-        return this.parseDebuggerStatement()
-      case tokenTypes.WITH:
-        return this.parseWithStatement()
-      case tokenTypes.RETURN:
-        return this.parseReturnStatement()
-      case tokenTypes.CONTINUE:
-        return this.parseContinueStatement()
-      case tokenTypes.BREAK:
-        return this.parseBreakStatement()
-      case tokenTypes.SWITCH:
-        return this.parseSwitchStatement()
-      case tokenTypes.THROW:
-        return this.parseThrowStatement()
-      case tokenTypes.TRY:
-        return this.parseTryStatement()
-      case tokenTypes.WHILE:
-        return this.parseWhileStatement()
-      case tokenTypes.DO:
-        return this.parseDoWhileStatement()
-      case tokenTypes.IDENTIFIER:
-        if (this.nextToken.tokenType === tokenTypes.COLON) {
-          return this.parseLabeledStatement()
-        }
-      default:
-        return this.parseExpressionStatement()
+    const curToken = this.curToken
+    if (
+      judgeAST(curToken, 'let') ||
+      judgeAST(curToken, 'const') ||
+      judgeAST(curToken, 'var')
+    ) {
+      return this.parseVariableDeclaration()
+    } else if (judgeAST(curToken, ';')) {
+      return this.parseEmptyStatement()
+    } else if (judgeAST(curToken, 'if')) {
+      return this.parseIfStatement()
+    } else if (judgeAST(curToken, 'function')) {
+      return this.parseFunctionDeclaration()
+    } else if (judgeAST(curToken, 'for')) {
+      return this.parseFor()
+    } else if (judgeAST(curToken, '{')) {
+      return this.parseBlockStatement()
+    } else if (judgeAST(curToken, 'debugger')) {
+      return this.parseDebuggerStatement()
+    } else if (judgeAST(curToken, 'WITH')) {
+      return this.parseWithStatement()
+    } else if (judgeAST(curToken, 'RETURN')) {
+      return this.parseReturnStatement()
+    } else if (judgeAST(curToken, 'CONTINUE')) {
+      return this.parseContinueStatement()
+    } else if (judgeAST(curToken, 'break')) {
+      return this.parseBreakStatement()
+    } else if (judgeAST(curToken, 'SWITCH')) {
+      return this.parseSwitchStatement()
+    } else if (judgeAST(curToken, 'THROW')) {
+      return this.parseThrowStatement()
+    } else if (judgeAST(curToken, 'TRY')) {
+      return this.parseTryStatement()
+    } else if (judgeAST(curToken, 'WHILE')) {
+      return this.parseWhileStatement()
+    } else if (judgeAST(curToken, 'DO')) {
+      return this.parseDoWhileStatement()
+    } else {
+      if (
+        curToken.type === tokenTypes.IDENTIFIER &&
+        judgeAST(this.nextToken, ':')
+      ) {
+        return this.parseLabeledStatement()
+      }
+      return this.parseExpressionStatement()
     }
-    throw 'syntax error'
   }
 
   parse() {
@@ -1261,7 +1272,7 @@ class Parser {
       if (statement !== null) {
         this.program.body.push(statement)
       }
-    } while (this.curToken.tokenType !== tokenTypes.EOF)
+    } while (this.curToken.type !== tokenTypes.EOF)
     this.parsePath.pop()
     this.program.loc.end = this.prevToken.loc.end
     // console.log(this.program.body)

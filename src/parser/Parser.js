@@ -38,6 +38,7 @@ import {
   ForInStatement,
   ForOfStatement,
   ThisExpression,
+  UnaryExpression,
 } from './estree'
 
 class Parser {
@@ -150,12 +151,32 @@ class Parser {
           loc: deepCopy(caller.curToken.loc),
         })
       },
+      [tokenTypes.BANG_SIGN]: caller.parseUnaryExpression.bind(caller),
+      [tokenTypes.MINUS_SIGN]: caller.parseUnaryExpression.bind(caller),
+      [tokenTypes.PLUS_SIGN]: caller.parseUnaryExpression.bind(caller),
+      [tokenTypes.TILDE]: caller.parseUnaryExpression.bind(caller),
+      [tokenTypes.TYPEOF]: caller.parseUnaryExpression.bind(caller),
+      [tokenTypes.VOID]: caller.parseUnaryExpression.bind(caller),
+      [tokenTypes.DELETE]: caller.parseUnaryExpression.bind(caller),
       [tokenTypes.FUNCTION]: caller.parseFunctionExpression.bind(caller, true),
       [tokenTypes.LEFT_BRACE]: caller.parseObjectExpression.bind(caller),
       [tokenTypes.LEFT_SQUARE_BRACKET]: caller.parseArrayExpression.bind(
         caller
       ),
     }
+  }
+
+  parseUnaryExpression() {
+    const props = {
+      loc: deepCopy(this.curToken.loc),
+      operator: this.curToken.literal,
+      prefix: true,
+      argument: null,
+    }
+    this.readToken()
+    props.argument = this.parseExpression(6, false)
+    props.loc.end = this.curToken.loc.end
+    return new UnaryExpression(props)
   }
 
   parseObjectExpression() {

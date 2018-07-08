@@ -109,6 +109,12 @@ class Lexer {
       case 'true':
       case 'false':
         return this.createToken(tokenTypes.BOOLEAN, identifier)
+      case 'typeof':
+        return this.createToken(tokenTypes.TYPEOF, identifier)
+      case 'void':
+        return this.createToken(tokenTypes.VOID, identifier)
+      case 'delete':
+        return this.createToken(tokenTypes.DELETE, identifier)
       // TODO
       default:
         return this.createToken(tokenTypes.ILLEGAL, identifier)
@@ -218,6 +224,8 @@ class Lexer {
         return this.createToken(tokenTypes.DOT, this.char)
       case ':':
         return this.createToken(tokenTypes.COLON, this.char)
+      case '~':
+        return this.createToken(tokenTypes.TILDE, this.char)
       // TODO
       default:
         let identifier = this.char

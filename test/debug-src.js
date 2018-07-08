@@ -158,6 +158,6 @@ const jungle = require('../src').default
 // })
 // `)
 
-// jungle(`
-// -1 + typeof 1 + d + delete 2 * void (dd)
-// `)
+jungle(`
+-1 + typeof 1 + d + delete 2 * void (dd)
+`)

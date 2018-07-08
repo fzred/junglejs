@@ -1261,10 +1261,7 @@ class Parser {
       if (statement !== null) {
         this.program.body.push(statement)
       }
-    } while (
-      this.curToken.tokenType !== tokenTypes.EOF &&
-      this.curToken.tokenType !== tokenTypes.ILLEGAL
-    )
+    } while (this.curToken.tokenType !== tokenTypes.EOF)
     this.parsePath.pop()
     this.program.loc.end = this.prevToken.loc.end
     // console.log(this.program.body)

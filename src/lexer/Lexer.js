@@ -106,29 +106,118 @@ class Lexer {
       case '=':
         if (this.nextChar === '=') {
           this.readChar()
-          return this.createToken(tokenTypes.Punctuator, '==')
+          let value = '=='
+          if (this.nextChar === '=') {
+            this.readChar()
+            value += '='
+          }
+          return this.createToken(tokenTypes.Punctuator, value)
+        } else if (this.nextChar === '>') {
+          this.readChar()
+          return this.createToken(tokenTypes.Punctuator, '=>')
         }
       case '!':
         if (this.nextChar === '=') {
           this.readChar()
-          return this.createToken(tokenTypes.Punctuator, '!=')
+          let value = '!='
+          if (this.nextChar === '=') {
+            this.readChar()
+            value += '='
+          }
+          return this.createToken(tokenTypes.Punctuator, value)
         }
       case '+':
         if (this.nextChar === '+') {
           this.readChar()
           return this.createToken(tokenTypes.Punctuator, '++')
+        } else if (this.nextChar === '=') {
+          this.readChar()
+          return this.createToken(tokenTypes.Punctuator, '+=')
         }
       case '-':
         if (this.nextChar === '-') {
           this.readChar()
           return this.createToken(tokenTypes.Punctuator, '--')
+        } else if (this.nextChar === '=') {
+          this.readChar()
+          return this.createToken(tokenTypes.Punctuator, '-=')
         }
       case '/':
+        if (this.nextChar === '=') {
+          this.readChar()
+          return this.createToken(tokenTypes.Punctuator, '/=')
+        }
       case '*':
+        if (this.nextChar === '=') {
+          this.readChar()
+          return this.createToken(tokenTypes.Punctuator, '*=')
+        } else if (this.nextChar === '*') {
+          this.readChar()
+          if (this.nextChar === '=') {
+            this.readChar()
+            return this.createToken(tokenTypes.Punctuator, '**=')
+          }
+          return this.createToken(tokenTypes.Punctuator, '**')
+        }
+      case '%':
+        if (this.nextChar === '=') {
+          this.readChar()
+          return this.createToken(tokenTypes.Punctuator, '%=')
+        }
+      case '|':
+        if (this.nextChar === '|') {
+          this.readChar()
+          return this.createToken(tokenTypes.Punctuator, '||')
+        } else if (this.nextChar === '=') {
+          this.readChar()
+          return this.createToken(tokenTypes.Punctuator, '|=')
+        }
+      case '&':
+        if (this.nextChar === '&') {
+          this.readChar()
+          return this.createToken(tokenTypes.Punctuator, '&&')
+        } else if (this.nextChar === '=') {
+          this.readChar()
+          return this.createToken(tokenTypes.Punctuator, '&=')
+        }
+      case '^':
+        if (this.nextChar === '=') {
+          this.readChar()
+          return this.createToken(tokenTypes.Punctuator, '^=')
+        }
       case '(':
       case ')':
       case '<':
+        if (this.nextChar === '=') {
+          this.readChar()
+          return this.createToken(tokenTypes.Punctuator, '<=')
+        } else if (this.nextChar === '<') {
+          this.readChar()
+          if (this.nextChar === '=') {
+            this.readChar()
+            return this.createToken(tokenTypes.Punctuator, '<<=')
+          }
+          return this.createToken(tokenTypes.Punctuator, '<<')
+        }
       case '>':
+        if (this.nextChar === '=') {
+          this.readChar()
+          return this.createToken(tokenTypes.Punctuator, '>=')
+        } else if (this.nextChar === '>') {
+          this.readChar()
+          if (this.nextChar === '>') {
+            this.readChar()
+            if (this.nextChar === '=') {
+              this.readChar()
+              return this.createToken(tokenTypes.Punctuator, '>>>=')
+            }
+            return this.createToken(tokenTypes.Punctuator, '>>>')
+          } else if (this.nextChar === '=') {
+            this.readChar()
+            return this.createToken(tokenTypes.Punctuator, '>>=')
+          }
+          return this.createToken(tokenTypes.Punctuator, '>>')
+        }
       case '{':
       case '}':
       case ',':

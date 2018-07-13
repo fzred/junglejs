@@ -90,8 +90,9 @@ class Parser {
       prefix: true,
       argument: null,
     }
+    const precedence = this.curTokenPrecedence
     this.readToken()
-    props.argument = this.parseExpression(6, false)
+    props.argument = this.parseExpression(precedence, false)
     props.loc.end = this.curToken.loc.end
     return new UnaryExpression(props)
   }
@@ -194,7 +195,7 @@ class Parser {
       loc: deepCopy(leftExp.loc),
     }
     this.readToken()
-    props.right = this.parseExpression(0, false)
+    props.right = this.parseExpression(-1, false)
     props.loc.end = this.curToken.loc.end
     return new AssignmentExpression(props)
   }
@@ -551,7 +552,7 @@ class Parser {
       loc: deepCopy(leftExp.loc),
     }
     this.readToken()
-    props.right = this.parseExpression(0, false)
+    props.right = this.parseExpression(-1, false)
     props.loc.end = this.curToken.loc.end
     return new LogicalExpression(props)
   }
@@ -604,6 +605,14 @@ class Parser {
 
   parseExpression(precedence = -1, autoReadNext = true) {
     let letExp = this.getPrefixParseFn(this.curToken)()
+    if (
+      this.parsePathClosest('ForInit') &&
+      this.nextToken.type === tokenTypes.Keyword &&
+      ['in', 'of'].indexOf(this.nextToken.value) > -1
+    ) {
+      this.readToken()
+      return letExp
+    }
     while (
       this.curToken.type !== tokenTypes.EOF &&
       !this.isStatementEnd(this.nextToken) &&
@@ -905,6 +914,9 @@ class Parser {
     this.parsePostion.push(deepCopy(this.curToken.loc))
     this.readToken()
     this.readToken()
+    this.parsePath.push({
+      type: 'ForInit',
+    })
     if (!judgeAST(this.curToken, ';')) {
       if (
         judgeAST(this.curToken, 'let') ||
@@ -915,6 +927,7 @@ class Parser {
       } else {
         init = this.parseExpression()
       }
+      this.parsePath.pop()
     } else {
       this.readToken()
       return this.parseForStatement(init)

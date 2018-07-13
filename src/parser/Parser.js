@@ -6,6 +6,7 @@ import {
   IfStatement,
   Identifier,
   BinaryExpression,
+  LogicalExpression,
   FunctionDeclaration,
   FunctionExpression,
   Literal,
@@ -55,24 +56,6 @@ class Parser {
     this.lexer = lexer
     this.position = 0
     this.curToken = null
-    // 运算符 优先级
-    this.precedences = {
-      [tokenTypes.ASSIGN_SIGN]: 1,
-      [tokenTypes.EQ]: 2,
-      [tokenTypes.NOT_EQ]: 2,
-      [tokenTypes.LT]: 3,
-      [tokenTypes.GT]: 3,
-      [tokenTypes.PLUS_SIGN]: 4,
-      [tokenTypes.MINUS_SIGN]: 4,
-      [tokenTypes.ASTERISK]: 5,
-      [tokenTypes.SLASH]: 5,
-      [tokenTypes.LEFT_PARENT]: 6,
-      [tokenTypes.DOT]: 6,
-      [tokenTypes.LEFT_SQUARE_BRACKET]: 6,
-    }
-
-    this.registerPrefixParseFns()
-    this.registerInfixParseFns()
 
     this.parsePath = []
     this.parsePostion = []
@@ -81,97 +64,23 @@ class Parser {
     this.parse()
   }
 
-  registerPrefixParseFns() {
-    const caller = this
-    this.prefixParseFns = {
-      [tokenTypes.INC_DEC]() {
-        const operator = caller.curToken.value
-        const loc = deepCopy(caller.curToken.loc)
-        if (caller.nextToken.type !== tokenTypes.IDENTIFIER) {
-          // TODO 语法错误处理
-          throw 'syntax error'
-        }
-        caller.readToken()
-        loc.end = caller.curToken.loc.end
-        return new UpdateExpression({
-          prefix: true,
-          operator,
-          loc,
-          argument: {
-            type: 'Identifier',
-            name: caller.curToken.value,
-          },
-        })
-      },
-      [tokenTypes.IDENTIFIER]() {
-        const name = caller.curToken.value
-        const identifierLoc = deepCopy(caller.curToken.loc)
-        if (caller.nextToken.type === tokenTypes.INC_DEC) {
-          caller.readToken()
+  get curParse() {
+    return this.parsePath[this.parsePath.length - 1] || null
+  }
 
-          return new UpdateExpression({
-            prefix: false,
-            operator: caller.curToken.value,
-            argument: new Identifier({
-              name,
-              loc: identifierLoc,
-            }),
-            loc: {
-              ...identifierLoc,
-              end: caller.curToken.loc.end,
-            },
-          })
-        }
-        return new Identifier({
-          name,
-          loc: identifierLoc,
-        })
-      },
-      [tokenTypes.LEFT_PARENT]() {
-        caller.readToken()
-        const exp = caller.parseExpression()
-        if (!judgeAST(caller.curToken, ')')) {
-          // TODO 语法错误处理
-          throw 'syntax error'
-        }
-        return exp
-      },
-      [tokenTypes.NUMBER]() {
-        return new Literal({
-          value: Number(caller.curToken.value),
-          loc: deepCopy(caller.curToken.loc),
-        })
-      },
-      [tokenTypes.STRING]() {
-        return new Literal({
-          value: String(caller.curToken.value),
-          loc: deepCopy(caller.curToken.loc),
-        })
-      },
-      [tokenTypes.BOOLEAN]() {
-        return new Literal({
-          value: caller.curToken.value === 'true',
-          loc: deepCopy(caller.curToken.loc),
-        })
-      },
-      [tokenTypes.THIS]() {
-        return new ThisExpression({
-          loc: deepCopy(caller.curToken.loc),
-        })
-      },
-      [tokenTypes.BANG_SIGN]: caller.parseUnaryExpression.bind(caller),
-      [tokenTypes.MINUS_SIGN]: caller.parseUnaryExpression.bind(caller),
-      [tokenTypes.PLUS_SIGN]: caller.parseUnaryExpression.bind(caller),
-      [tokenTypes.TILDE]: caller.parseUnaryExpression.bind(caller),
-      [tokenTypes.TYPEOF]: caller.parseUnaryExpression.bind(caller),
-      [tokenTypes.VOID]: caller.parseUnaryExpression.bind(caller),
-      [tokenTypes.DELETE]: caller.parseUnaryExpression.bind(caller),
-      [tokenTypes.FUNCTION]: caller.parseFunctionExpression.bind(caller, true),
-      [tokenTypes.LEFT_BRACE]: caller.parseObjectExpression.bind(caller),
-      [tokenTypes.LEFT_SQUARE_BRACKET]: caller.parseArrayExpression.bind(
-        caller
-      ),
-    }
+  get nextToken() {
+    return this.lexer.tokens[this.position]
+  }
+  get prevToken() {
+    return this.lexer.tokens[this.position - 2]
+  }
+
+  get curTokenPrecedence() {
+    return this.getPrecedence(this.curToken)
+  }
+
+  get nextTokenPrecedence() {
+    return this.getPrecedence(this.nextToken)
   }
 
   parseUnaryExpression() {
@@ -208,7 +117,7 @@ class Parser {
         this.curToken.type === tokenTypes.STRING ||
         this.curToken.type === tokenTypes.NUMBER
       ) {
-        propertyProps.key = this.prefixParseFns[this.curToken.tokenType]()
+        propertyProps.key = this.getPrefixParseFn(this.curToken)()
       } else {
         propertyProps.key = new Identifier({
           name: this.curToken.value,
@@ -290,131 +199,363 @@ class Parser {
     return new AssignmentExpression(props)
   }
 
-  registerInfixParseFns() {
-    const caller = this
-    function infixParse(leftExp) {
-      const operator = caller.curToken.value
-      const precedence = caller.curTokenPrecedence
-      caller.readToken()
-      const rightExp = caller.parseExpression(precedence, false)
-      return new BinaryExpression({
-        left: leftExp,
-        operator,
-        right: rightExp,
-        loc: {
-          start: leftExp.loc.start,
-          end: caller.curToken.loc.end,
-        },
-      })
-    }
-    function callParse(leftExp) {
-      const argument = []
-      caller.readToken()
-      while (!judgeAST(caller.curToken, ')')) {
-        argument.push(caller.parseExpression())
-        if (judgeAST(caller.curToken, ',')) {
-          if (judgeAST(caller.nextToken, ')')) {
-            // TODO 语法错误处理
-            throw 'syntax error'
-          }
-        }
-      }
-      return new CallExpression({
-        callee: leftExp,
-        argument,
-        loc: {
-          start: leftExp.loc.start,
-          end: caller.curToken.loc.end,
-        },
-      })
-    }
-    function parseMemberExpression(computed, leftExp) {
-      if (computed) {
-        if (judgeAST(caller.nextToken, ']')) {
-          // TODO 语法错误处理
-          throw 'syntax error'
-        }
-        caller.readToken()
-        const property = caller.parseExpression()
-        if (!judgeAST(caller.curToken, ']')) {
-          // TODO 语法错误处理
-          throw 'syntax error'
-        }
-
-        return new MemberExpression({
-          computed,
-          property,
-          object: leftExp,
-          loc: {
-            start: leftExp.loc.start,
-            end: caller.curToken.loc.end,
-          },
-        })
-      } else {
-        caller.readToken()
-        let property
-        if (judgeAST(caller.curToken, 'this')) {
-          property = new Identifier({
-            name: 'this',
-            loc: deepCopy(caller.curToken.loc),
-          })
-        } else {
-          if (caller.curToken.type !== tokenTypes.IDENTIFIER) {
-            // TODO 语法错误处理
-            throw 'syntax error'
-          }
-          property = caller.prefixParseFns[tokenTypes.IDENTIFIER]()
-        }
-
-        return new MemberExpression({
-          computed,
-          property,
-          object: leftExp,
-          loc: {
-            start: leftExp.loc.start,
-            end: caller.curToken.loc.end,
-          },
-        })
-      }
-    }
-    this.infixParseFns = {
-      [tokenTypes.PLUS_SIGN]: infixParse,
-      [tokenTypes.MINUS_SIGN]: infixParse,
-      [tokenTypes.ASTERISK]: infixParse,
-      [tokenTypes.SLASH]: infixParse,
-      [tokenTypes.LT]: infixParse,
-      [tokenTypes.GT]: infixParse,
-      [tokenTypes.EQ]: infixParse,
-      [tokenTypes.NOT_EQ]: infixParse,
-      [tokenTypes.ASSIGN_SIGN]: this.parseAssignmentExpression.bind(this),
-      [tokenTypes.LEFT_PARENT]: callParse,
-      [tokenTypes.DOT]: parseMemberExpression.bind(null, false),
-      [tokenTypes.LEFT_SQUARE_BRACKET]: parseMemberExpression.bind(null, true),
-    }
-  }
-
   readToken() {
     this.curToken = this.nextToken
     this.position++
   }
 
-  get curParse() {
-    return this.parsePath[this.parsePath.length - 1] || null
+  parseBinaryExpression(leftExp) {
+    const operator = this.curToken.value
+    const precedence = this.curTokenPrecedence
+    this.readToken()
+    const rightExp = this.parseExpression(precedence, false)
+    return new BinaryExpression({
+      left: leftExp,
+      operator,
+      right: rightExp,
+      loc: {
+        start: leftExp.loc.start,
+        end: this.curToken.loc.end,
+      },
+    })
   }
 
-  get nextToken() {
-    return this.lexer.tokens[this.position]
-  }
-  get prevToken() {
-    return this.lexer.tokens[this.position - 2]
+  parseCallExpression(leftExp) {
+    const argument = []
+    this.readToken()
+    while (!judgeAST(this.curToken, ')')) {
+      argument.push(this.parseExpression())
+      if (judgeAST(this.curToken, ',')) {
+        if (judgeAST(this.nextToken, ')')) {
+          // TODO 语法错误处理
+          throw 'syntax error'
+        }
+      }
+    }
+    return new CallExpression({
+      callee: leftExp,
+      argument,
+      loc: {
+        start: leftExp.loc.start,
+        end: this.curToken.loc.end,
+      },
+    })
   }
 
-  get curTokenPrecedence() {
-    return this.precedences[this.curToken.tokenType] || 0
+  parseMemberExpression(computed, leftExp) {
+    if (computed) {
+      if (judgeAST(this.nextToken, ']')) {
+        // TODO 语法错误处理
+        throw 'syntax error'
+      }
+      this.readToken()
+      const property = this.parseExpression()
+      if (!judgeAST(this.curToken, ']')) {
+        // TODO 语法错误处理
+        throw 'syntax error'
+      }
+
+      return new MemberExpression({
+        computed,
+        property,
+        object: leftExp,
+        loc: {
+          start: leftExp.loc.start,
+          end: this.curToken.loc.end,
+        },
+      })
+    } else {
+      this.readToken()
+      let property
+      if (judgeAST(this.curToken, 'this')) {
+        property = new Identifier({
+          name: 'this',
+          loc: deepCopy(this.curToken.loc),
+        })
+      } else {
+        if (this.curToken.type !== tokenTypes.IDENTIFIER) {
+          // TODO 语法错误处理
+          throw 'syntax error'
+        }
+        property = this.parseIdentifier()
+      }
+
+      return new MemberExpression({
+        computed,
+        property,
+        object: leftExp,
+        loc: {
+          start: leftExp.loc.start,
+          end: this.curToken.loc.end,
+        },
+      })
+    }
   }
 
-  get nextTokenPrecedence() {
-    return this.precedences[this.nextToken.tokenType] || 0
+  // 运算符 优先级
+  getPrecedence(token) {
+    // https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Operators/Operator_Precedence
+    if (
+      token.type === tokenTypes.Punctuator ||
+      token.type === tokenTypes.Keyword
+    ) {
+      switch (token.value) {
+        case '(':
+          return 20
+        case '.':
+        case '[':
+        case 'new':
+          return 19
+        case '**':
+          return 15
+        case '*':
+        case '/':
+        case '%':
+          return 14
+        case '+':
+        case '-':
+          return 13
+        case '<<':
+        case '>>':
+        case '>>>':
+          return 12
+        case '<':
+        case '<=':
+        case '>':
+        case '>=':
+        case 'in':
+        case 'instanceof':
+          return 11
+        case '==':
+        case '!=':
+        case '===':
+        case '!==':
+          return 10
+        case '&':
+          return 9
+        case '^':
+          return 8
+        case '|':
+          return 7
+        case '&&':
+          return 6
+        case '||':
+          return 5
+        case '?':
+          return 4
+        case '=':
+        case '+=':
+        case '-=':
+        case '*=':
+        case '/=':
+        case '%=':
+        case '<<=':
+        case '>>=':
+        case '>>>=':
+        case '&=':
+        case '^=':
+        case '|=':
+          return 3
+        case 'yield':
+        case 'yield*':
+          return 2
+        case '...':
+          return 1
+        case ',':
+          return 0
+      }
+    }
+    return -1
+  }
+
+  getInfixParseFn(token) {
+    if (
+      token.type === tokenTypes.Punctuator ||
+      token.type === tokenTypes.Keyword
+    ) {
+      if (
+        [
+          '==',
+          '!=',
+          '===',
+          '!==',
+          '<',
+          '<=',
+          '>',
+          '>=',
+          '<<',
+          '>>',
+          '>>>',
+          '+',
+          '-',
+          '*',
+          '/',
+          '%',
+          ',',
+          '^',
+          '&',
+          'in',
+          'instanceof',
+        ].indexOf(token.value) > -1
+      ) {
+        return this.parseBinaryExpression.bind(this)
+      } else if (
+        [
+          '=',
+          '+=',
+          '-=',
+          '*=',
+          '/=',
+          '%=',
+          '<<=',
+          '>>=',
+          '>>>=',
+          '|=',
+          '^=',
+          '&=',
+        ].indexOf(token.value) > -1
+      ) {
+        return this.parseAssignmentExpression.bind(this)
+      } else if (['&&', '||'].indexOf(token.value) > -1) {
+        return this.parseLogicalExpression.bind(this)
+      } else if (token.value === '(') {
+        return this.parseCallExpression.bind(this)
+      } else if (token.value === '.') {
+        return this.parseMemberExpression.bind(this)
+      } else if (token.value === '[') {
+        return this.parseMemberExpression.bind(this)
+      }
+    }
+  }
+
+  getPrefixParseFn(token) {
+    if (
+      token.type === tokenTypes.Punctuator ||
+      token.type === tokenTypes.Keyword
+    ) {
+      if (
+        ['-', '+', '!', '~', 'typeof', 'void', 'delete'].indexOf(token.value) >
+        -1
+      ) {
+        return this.parseUnaryExpression.bind(this)
+      } else if (['++', '--'].indexOf(token.value) > -1) {
+        return this.parseUpdateExpression.bind(this)
+      } else if (token.value === 'function') {
+        return this.parseFunctionExpression.bind(this)
+      } else if (token.value === '{') {
+        return this.parseObjectExpression.bind(this)
+      } else if (token.value === '[') {
+        return this.parseArrayExpression.bind(this)
+      } else if (token.value === 'this') {
+        return this.parseThisExpression.bind(this)
+      } else if (token.value === '(') {
+        return function() {
+          this.readToken()
+          const exp = this.parseExpression()
+          if (!judgeAST(this.curToken, ')')) {
+            // TODO 语法错误处理
+            throw 'syntax error'
+          }
+          return exp
+        }.bind(this)
+      }
+    } else if (
+      [tokenTypes.NUMBER, tokenTypes.STRING, tokenTypes.BOOLEAN].indexOf(
+        token.type
+      ) > -1
+    ) {
+      // TODO null | RegExp
+      return this.parseLiteral.bind(this)
+    } else if (token.type === tokenTypes.IDENTIFIER) {
+      return this.parseIdentifier.bind(this, true)
+    }
+  }
+
+  parseIdentifier(autoParseUpdateExpression = false) {
+    const name = this.curToken.value
+    const identifierLoc = deepCopy(this.curToken.loc)
+    if (
+      ['++', '--'].indexOf(this.nextToken.value) > -1 &&
+      autoParseUpdateExpression // 碰到 ++ -- 顺便解析
+    ) {
+      this.readToken()
+
+      return new UpdateExpression({
+        prefix: false,
+        operator: this.curToken.value,
+        argument: new Identifier({
+          name,
+          loc: identifierLoc,
+        }),
+        loc: {
+          ...identifierLoc,
+          end: this.curToken.loc.end,
+        },
+      })
+    }
+    return new Identifier({
+      name,
+      loc: identifierLoc,
+    })
+  }
+
+  parseUpdateExpression() {
+    const operator = this.curToken.value
+    const loc = deepCopy(this.curToken.loc)
+    if (this.nextToken.type !== tokenTypes.IDENTIFIER) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    loc.end = this.curToken.loc.end
+    return new UpdateExpression({
+      prefix: true,
+      operator,
+      loc,
+      argument: {
+        type: 'Identifier',
+        name: this.curToken.value,
+      },
+    })
+  }
+
+  parseLiteral() {
+    const props = {
+      value: null,
+      loc: deepCopy(this.curToken.loc),
+    }
+    switch (caller.curToken.type) {
+      case tokenTypes.NUMBER:
+        props.value = Number(caller.curToken.value)
+        break
+      case tokenTypes.STRING:
+        props.value = String(caller.curToken.value)
+        break
+      case tokenTypes.BOOLEAN:
+        props.value = caller.curToken.value === 'true'
+        break
+    }
+    // TODO null | RegExp
+    return new Literal(props)
+  }
+
+  parseThisExpression() {
+    return new ThisExpression({
+      loc: deepCopy(this.curToken.loc),
+    })
+  }
+
+  parseLogicalExpression(leftExp) {
+    const props = {
+      left: leftExp,
+      operator: this.curToken.value,
+      right: null,
+      loc: deepCopy(leftExp.loc),
+    }
+    this.readToken()
+    props.right = this.parseExpression(0, false)
+    props.loc.end = this.curToken.loc.end
+    return new LogicalExpression(props)
   }
 
   /**
@@ -463,14 +604,14 @@ class Parser {
     )
   }
 
-  parseExpression(precedence = 0, autoReadNext = true) {
-    let letExp = this.prefixParseFns[this.curToken.tokenType]()
+  parseExpression(precedence = -1, autoReadNext = true) {
+    let letExp = this.getPrefixParseFn(this.curToken)()
     while (
       this.curToken.type !== tokenTypes.EOF &&
       !this.isStatementEnd(this.nextToken) &&
       this.nextTokenPrecedence > precedence
     ) {
-      const infix = this.infixParseFns[this.nextToken.tokenType]
+      const infix = this.getInfixParseFn(this.nextToken)
       this.readToken()
       letExp = infix(letExp)
     }
@@ -527,7 +668,7 @@ class Parser {
         throw 'syntax error'
       }
 
-      const identifier = this.prefixParseFns[this.curToken.tokenType]()
+      const identifier = this.getPrefixParseFn(this.curToken)()
       this.readToken()
       if (!judgeAST(this.curToken, '=')) {
         // TODO 语法错误处理
@@ -569,11 +710,10 @@ class Parser {
       params: [],
       loc: deepCopy(this.curToken.loc),
     }
-    const parseIDENTIFIER = this.prefixParseFns[tokenTypes.IDENTIFIER]
     if (!short) {
       if (this.nextToken.type === tokenTypes.IDENTIFIER) {
         this.readToken()
-        props.id = parseIDENTIFIER()
+        props.id = this.parseIdentifier()
       }
       this.readToken()
     }
@@ -584,7 +724,7 @@ class Parser {
     }
     while (!judgeAST(this.nextToken, ')')) {
       this.readToken()
-      props.params.push(parseIDENTIFIER())
+      props.params.push(this.parseIdentifier())
       if (judgeAST(this.nextToken, ',')) {
         this.readToken()
         if (judgeAST(this.nextToken, ')')) {
@@ -873,7 +1013,7 @@ class Parser {
 
   parseLabeledStatement() {
     const props = {
-      label: this.prefixParseFns[this.curToken.tokenType](),
+      label: this.getPrefixParseFn(this.curToken)(),
       body: null,
       loc: deepCopy(this.curToken.loc),
     }
@@ -921,7 +1061,7 @@ class Parser {
         // TODO 语法错误处理
         throw 'syntax error: label name not consistent'
       }
-      props.label = this.prefixParseFns[this.curToken.tokenType]()
+      props.label = this.getPrefixParseFn(this.curToken)()
 
       props.loc.end = this.curToken.loc.end
       this.readToken()
@@ -968,7 +1108,7 @@ class Parser {
         // TODO 语法错误处理
         throw 'syntax error: label name not consistent'
       }
-      props.label = this.prefixParseFns[this.curToken.tokenType]()
+      props.label = this.getPrefixParseFn(this.curToken)()
 
       props.loc.end = this.curToken.loc.end
       this.readToken()
@@ -1097,14 +1237,13 @@ class Parser {
         body: null,
         loc: deepCopy(this.curToken.loc),
       }
-      const parseIDENTIFIER = this.prefixParseFns[tokenTypes.IDENTIFIER]
       if (!judgeAST(this.nextToken, '(')) {
         // TODO 语法错误处理
         throw 'syntax error'
       }
       this.readToken()
       this.readToken()
-      catchProps.param = parseIDENTIFIER(this.curToken)
+      catchProps.param = this.parseIdentifier()
       if (this.nextToken.type !== ')') {
         // TODO 语法错误处理
         throw 'syntax error'

@@ -94,10 +94,20 @@ export class FunctionDeclaration extends FunctionExpression {
   }
 }
 
-export class AssignmentExpression extends Statement {
+export class AssignmentExpression extends Expression {
   constructor(props) {
     super(props)
     this.type = 'AssignmentExpression'
+    this.operator = props.operator
+    this.left = props.left
+    this.right = props.right
+  }
+}
+
+export class LogicalExpression extends Expression {
+  constructor(props) {
+    super(props)
+    this.type = 'LogicalExpression'
     this.operator = props.operator
     this.left = props.left
     this.right = props.right

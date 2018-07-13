@@ -106,22 +106,22 @@ class Lexer {
       case '=':
         if (this.nextChar === '=') {
           this.readChar()
-          return this.createToken(tokenTypes.EQ, '==')
+          return this.createToken(tokenTypes.Punctuator, '==')
         }
       case '!':
         if (this.nextChar === '=') {
           this.readChar()
-          return this.createToken(tokenTypes.NOT_EQ, '!=')
+          return this.createToken(tokenTypes.Punctuator, '!=')
         }
       case '+':
         if (this.nextChar === '+') {
           this.readChar()
-          return this.createToken(tokenTypes.INC_DEC, '++')
+          return this.createToken(tokenTypes.Punctuator, '++')
         }
       case '-':
         if (this.nextChar === '-') {
           this.readChar()
-          return this.createToken(tokenTypes.INC_DEC, '--')
+          return this.createToken(tokenTypes.Punctuator, '--')
         }
       case '/':
       case '*':

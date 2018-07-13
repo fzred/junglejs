@@ -128,35 +128,35 @@ const jungle = require('../src').default
 // }while(a)
 // `)
 
-// jungle(`
-// for(a in obj){
-//   b()
-// }
-// `)
+jungle(`
+for(a in obj){
+  b()
+}
+`)
 
-// jungle(`
-// for(a of obj){
-//   b()
-// }
-// `)
+jungle(`
+for(a of obj){
+  b()
+}
+`)
 
-// jungle(`
-// this.a
-// a.this.d
-// a[this].d
-// `)
+jungle(`
+this.a
+a.this.d
+a[this].d
+`)
 
-// jungle(`const a= 1, b=2+43
-// ;`)
+jungle(`const a= 1, b=2+43
+;`)
 
-// jungle(`
-// ++aa
-// `)
+jungle(`
+++aa
+`)
 
-// jungle(`({
-//   get ff(){}
-// })
-// `)
+jungle(`({
+  get ff(){}
+})
+`)
 
 jungle(`
 -1 + typeof 1 + d + delete 2 * void (dd)

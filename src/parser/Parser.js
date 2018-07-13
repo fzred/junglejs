@@ -361,8 +361,6 @@ class Parser {
           return 2
         case '...':
           return 1
-        case ',':
-          return 0
       }
     }
     return -1
@@ -391,7 +389,7 @@ class Parser {
           '*',
           '/',
           '%',
-          ',',
+          '|',
           '^',
           '&',
           'in',
@@ -421,9 +419,9 @@ class Parser {
       } else if (token.value === '(') {
         return this.parseCallExpression.bind(this)
       } else if (token.value === '.') {
-        return this.parseMemberExpression.bind(this)
+        return this.parseMemberExpression.bind(this, false)
       } else if (token.value === '[') {
-        return this.parseMemberExpression.bind(this)
+        return this.parseMemberExpression.bind(this, true)
       }
     }
   }
@@ -441,7 +439,7 @@ class Parser {
       } else if (['++', '--'].indexOf(token.value) > -1) {
         return this.parseUpdateExpression.bind(this)
       } else if (token.value === 'function') {
-        return this.parseFunctionExpression.bind(this)
+        return this.parseFunctionExpression.bind(this, true)
       } else if (token.value === '{') {
         return this.parseObjectExpression.bind(this)
       } else if (token.value === '[') {
@@ -524,15 +522,15 @@ class Parser {
       value: null,
       loc: deepCopy(this.curToken.loc),
     }
-    switch (caller.curToken.type) {
+    switch (this.curToken.type) {
       case tokenTypes.NUMBER:
-        props.value = Number(caller.curToken.value)
+        props.value = Number(this.curToken.value)
         break
       case tokenTypes.STRING:
-        props.value = String(caller.curToken.value)
+        props.value = String(this.curToken.value)
         break
       case tokenTypes.BOOLEAN:
-        props.value = caller.curToken.value === 'true'
+        props.value = this.curToken.value === 'true'
         break
     }
     // TODO null | RegExp
@@ -1165,7 +1163,7 @@ class Parser {
       if (!isDefault) {
         caseProps.test = this.parseExpression()
       }
-      if (judgeAST(this.curToken, ':')) {
+      if (!judgeAST(this.curToken, ':')) {
         // TODO 语法错误处理
         throw 'syntax error'
       }
@@ -1244,7 +1242,7 @@ class Parser {
       this.readToken()
       this.readToken()
       catchProps.param = this.parseIdentifier()
-      if (this.nextToken.type !== ')') {
+      if (!judgeAST(this.nextToken, ')')) {
         // TODO 语法错误处理
         throw 'syntax error'
       }
@@ -1327,7 +1325,7 @@ class Parser {
     }
     this.readToken()
     props.body = this.parseBlockStatement()
-    if (judgeAST(this.curToken, 'while')) {
+    if (!judgeAST(this.curToken, 'while')) {
       // TODO 语法错误处理
       throw 'syntax error'
     }
@@ -1370,23 +1368,23 @@ class Parser {
       return this.parseBlockStatement()
     } else if (judgeAST(curToken, 'debugger')) {
       return this.parseDebuggerStatement()
-    } else if (judgeAST(curToken, 'WITH')) {
+    } else if (judgeAST(curToken, 'with')) {
       return this.parseWithStatement()
-    } else if (judgeAST(curToken, 'RETURN')) {
+    } else if (judgeAST(curToken, 'return')) {
       return this.parseReturnStatement()
-    } else if (judgeAST(curToken, 'CONTINUE')) {
+    } else if (judgeAST(curToken, 'continue')) {
       return this.parseContinueStatement()
     } else if (judgeAST(curToken, 'break')) {
       return this.parseBreakStatement()
-    } else if (judgeAST(curToken, 'SWITCH')) {
+    } else if (judgeAST(curToken, 'switch')) {
       return this.parseSwitchStatement()
-    } else if (judgeAST(curToken, 'THROW')) {
+    } else if (judgeAST(curToken, 'throw')) {
       return this.parseThrowStatement()
-    } else if (judgeAST(curToken, 'TRY')) {
+    } else if (judgeAST(curToken, 'try')) {
       return this.parseTryStatement()
-    } else if (judgeAST(curToken, 'WHILE')) {
+    } else if (judgeAST(curToken, 'while')) {
       return this.parseWhileStatement()
-    } else if (judgeAST(curToken, 'DO')) {
+    } else if (judgeAST(curToken, 'do')) {
       return this.parseDoWhileStatement()
     } else {
       if (

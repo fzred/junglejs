@@ -1426,7 +1426,18 @@ class Parser {
     this.parsePath.pop()
     this.program.loc.end = this.prevToken.loc.end
     // console.log(this.program.body)
-    console.log(JSON.stringify(this.program, null, 2))
+    console.log(
+      JSON.stringify(
+        this.program,
+        (k, v) => {
+          if (k === 'loc') {
+            return undefined
+          }
+          return v
+        },
+        2
+      )
+    )
     debugger
   }
 }

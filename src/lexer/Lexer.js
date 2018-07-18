@@ -246,6 +246,10 @@ class Lexer {
     this.columnNumber = -1
   }
 
+  isRegStart() {}
+
+  readRegexToken() {}
+
   nextToken() {
     this.readChar()
     this.skipSpack()
@@ -303,7 +307,9 @@ class Lexer {
           return this.createToken(tokenTypes.Punctuator, '-=')
         }
       case '/':
-        if (this.nextChar === '=') {
+        if (this.isRegStart()) {
+          return this.readRegexToken()
+        } else if (this.nextChar === '=') {
           this.readChar()
           return this.createToken(tokenTypes.Punctuator, '/=')
         }

@@ -165,3 +165,6 @@ const jungle = require('../src').default
 // `)
 
 jungle(fs.readFileSync(path.join(__dirname, './string.js')).toString())
+jungle(`
+/\d/
+`)

@@ -246,9 +246,87 @@ class Lexer {
     this.columnNumber = -1
   }
 
+  isLineTerminator(char) {
+    return char === '\r' || char === '\n'
+  }
+
   isRegStart() {}
 
-  readRegexToken() {}
+  readRegexToken() {
+    let classMarker = false
+    let terminated = false
+    let str = ''
+    while (this.nextChar !== null) {
+      this.readChar()
+      str += this.char
+      if (this.char === '\\') {
+        // https://tc39.github.io/ecma262/#sec-literals-regular-expression-literals
+        if (this.isLineTerminator(this.char)) {
+          throw 'ILLEGAL'
+        }
+        this.readChar()
+        str += this.char
+      } else if (this.isLineTerminator(this.char)) {
+        throw 'ILLEGAL'
+      } else if (classMarker) {
+        if (this.char === ']') {
+          classMarker = false
+        }
+      } else {
+        if (this.char === '/') {
+          terminated = true
+          break
+        } else if (this.char === '[') {
+          classMarker = true
+        }
+      }
+    }
+
+    if (!terminated) {
+      throw 'ILLEGAL'
+    }
+
+    return str.substr(0, str.length - 2)
+  }
+
+  readRegexFlags() {
+    let str = ''
+    let flags = ''
+    while (this.nextChar !== null) {
+      this.readChar()
+      let ch = this.char
+      if (!Character.isIdentifierPart(ch.charCodeAt(0))) {
+        break
+      }
+      ++this.index
+      if (ch === '\\' && !this.eof()) {
+        ch = this.source[this.index]
+        if (ch === 'u') {
+          ++this.index
+          let restore = this.index
+          const char = this.scanHexEscape('u')
+          if (char !== null) {
+            flags += char
+            for (str += '\\u'; restore < this.index; ++restore) {
+              str += this.source[restore]
+            }
+          } else {
+            this.index = restore
+            flags += 'u'
+            str += '\\u'
+          }
+          this.tolerateUnexpectedToken()
+        } else {
+          str += '\\'
+          this.tolerateUnexpectedToken()
+        }
+      } else {
+        flags += ch
+        str += ch
+      }
+    }
+    return flags
+  }
 
   nextToken() {
     this.readChar()

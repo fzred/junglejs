@@ -286,44 +286,20 @@ class Lexer {
       throw 'ILLEGAL'
     }
 
-    return str.substr(0, str.length - 2)
+    const pattern = str.substr(0, str.length - 2)
+    const flags = this.readRegexFlags()
+
+    return this.createToken(tokenTypes.REGEX, new RegExp(pattern, flags))
   }
 
   readRegexFlags() {
-    let str = ''
     let flags = ''
     while (this.nextChar !== null) {
       this.readChar()
-      let ch = this.char
-      if (!Character.isIdentifierPart(ch.charCodeAt(0))) {
+      if (!/igmuy/.test(this.char)) {
         break
       }
-      ++this.index
-      if (ch === '\\' && !this.eof()) {
-        ch = this.source[this.index]
-        if (ch === 'u') {
-          ++this.index
-          let restore = this.index
-          const char = this.scanHexEscape('u')
-          if (char !== null) {
-            flags += char
-            for (str += '\\u'; restore < this.index; ++restore) {
-              str += this.source[restore]
-            }
-          } else {
-            this.index = restore
-            flags += 'u'
-            str += '\\u'
-          }
-          this.tolerateUnexpectedToken()
-        } else {
-          str += '\\'
-          this.tolerateUnexpectedToken()
-        }
-      } else {
-        flags += ch
-        str += ch
-      }
+      flags += this.char
     }
     return flags
   }

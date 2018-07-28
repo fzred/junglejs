@@ -6,7 +6,7 @@ export default {
   NullLiteral: 'NullLiteral',
   NUMBER: 'NUMBER',
   STRING: 'STRING',
-  RegularExpression: 'RegularExpression',
+  REGEX: 'REGEX',
   Template: 'Template',
 
   Punctuator: 'Punctuator',

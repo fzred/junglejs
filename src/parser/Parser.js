@@ -521,7 +521,8 @@ class Parser {
 
     if (
       this.nextToken.type === tokenTypes.IDENTIFIER &&
-      this.curToken.loc.end.column === this.nextToken.loc.start.column
+      this.curToken.loc.end.column === this.nextToken.loc.start.column &&
+      /^[gimuy]+$/.test(this.nextToken.value)
     ) {
       this.readToken()
       flags += this.curToken.value
@@ -696,9 +697,6 @@ class Parser {
     let isStr = this.curToken.type === tokenTypes.STRING
     const loc = deepCopy(this.curToken.loc)
     const expression = this.parseExpression()
-    if (judgeAST(this.curToken, ';')) {
-      this.readToken()
-    }
     let isTop = false
     if (this.curParse.type === 'program') {
       isTop = this.curParse.body.findIndex(item => !item.directive) < 0
@@ -707,6 +705,9 @@ class Parser {
     }
     if (!this.isStatementEnd(this.curToken) && !this.isNewLine()) {
       throw 'syntax error'
+    }
+    if (judgeAST(this.curToken, ';')) {
+      this.readToken()
     }
     loc.end = this.prevToken.loc.end
     if (isStr && isTop) {

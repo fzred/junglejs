@@ -250,60 +250,6 @@ class Lexer {
     return char === '\r' || char === '\n'
   }
 
-  isRegStart() {}
-
-  readRegexToken() {
-    let classMarker = false
-    let terminated = false
-    let str = ''
-    while (this.nextChar !== null) {
-      this.readChar()
-      str += this.char
-      if (this.char === '\\') {
-        // https://tc39.github.io/ecma262/#sec-literals-regular-expression-literals
-        if (this.isLineTerminator(this.char)) {
-          throw 'ILLEGAL'
-        }
-        this.readChar()
-        str += this.char
-      } else if (this.isLineTerminator(this.char)) {
-        throw 'ILLEGAL'
-      } else if (classMarker) {
-        if (this.char === ']') {
-          classMarker = false
-        }
-      } else {
-        if (this.char === '/') {
-          terminated = true
-          break
-        } else if (this.char === '[') {
-          classMarker = true
-        }
-      }
-    }
-
-    if (!terminated) {
-      throw 'ILLEGAL'
-    }
-
-    const pattern = str.substr(0, str.length - 2)
-    const flags = this.readRegexFlags()
-
-    return this.createToken(tokenTypes.REGEX, new RegExp(pattern, flags))
-  }
-
-  readRegexFlags() {
-    let flags = ''
-    while (this.nextChar !== null) {
-      this.readChar()
-      if (!/igmuy/.test(this.char)) {
-        break
-      }
-      flags += this.char
-    }
-    return flags
-  }
-
   nextToken() {
     this.readChar()
     this.skipSpack()
@@ -361,9 +307,7 @@ class Lexer {
           return this.createToken(tokenTypes.Punctuator, '-=')
         }
       case '/':
-        if (this.isRegStart()) {
-          return this.readRegexToken()
-        } else if (this.nextChar === '=') {
+        if (this.nextChar === '=') {
           this.readChar()
           return this.createToken(tokenTypes.Punctuator, '/=')
         }
@@ -446,6 +390,7 @@ class Lexer {
       case '.':
       case ':':
       case '~':
+      case '\\':
       case ';':
         return this.createToken(tokenTypes.Punctuator, this.char)
       // TODO

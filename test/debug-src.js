@@ -164,7 +164,5 @@ const jungle = require('../src').default
 // -1 + typeof 1 + d + delete 2 * void (dd)
 // `)
 
-jungle(fs.readFileSync(path.join(__dirname, './string.js')).toString())
-jungle(`
-/\d/
-`)
+// jungle(fs.readFileSync(path.join(__dirname, './string.js')).toString())
+jungle(fs.readFileSync(path.join(__dirname, './regex.js')).toString())

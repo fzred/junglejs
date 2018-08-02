@@ -185,6 +185,9 @@ export class Literal extends Node {
     super(props)
     this.type = 'Literal'
     this.value = props.value
+    if (props.regex) {
+      this.regex = props.regex
+    }
   }
 }
 

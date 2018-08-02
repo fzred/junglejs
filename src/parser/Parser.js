@@ -447,6 +447,8 @@ class Parser {
         return this.parseArrayExpression.bind(this)
       } else if (token.value === 'this') {
         return this.parseThisExpression.bind(this)
+      } else if (token.value === '/') {
+        return this.parseRegex.bind(this)
       } else if (token.value === '(') {
         return function() {
           this.readToken()
@@ -468,6 +470,67 @@ class Parser {
     } else if (token.type === tokenTypes.IDENTIFIER) {
       return this.parseIdentifier.bind(this, true)
     }
+  }
+
+  parseRegex() {
+    const props = {
+      value: null,
+      loc: deepCopy(this.curToken.loc),
+      regex: {
+        pattern: '',
+        flags: '',
+      },
+    }
+    let classMarker = false
+    let terminated = false
+    let str = ''
+    let flags = ''
+    this.readToken()
+
+    const getRaw = () => {
+      const space =
+        this.curToken.loc.start.column - this.prevToken.loc.end.column
+      return new Array(1 + space).join(' ') + this.curToken.value
+    }
+
+    while (!this.isNewLine()) {
+      str += getRaw()
+      if (this.curToken.value === '\\') {
+        this.readToken()
+        if (this.isNewLine()) {
+          throw 'syntax error'
+        }
+        str += getRaw()
+      } else if (classMarker) {
+        if (this.curToken.value === ']') {
+          classMarker = false
+        }
+      } else {
+        if (this.curToken.value === '/') {
+          terminated = true
+          break
+        } else if (this.curToken.value === '[') {
+          classMarker = true
+        }
+      }
+      this.readToken()
+    }
+    if (!terminated) {
+      throw 'syntax error'
+    }
+
+    if (
+      this.nextToken.type === tokenTypes.IDENTIFIER &&
+      this.curToken.loc.end.column === this.nextToken.loc.start.column
+    ) {
+      this.readToken()
+      flags += this.curToken.value
+    }
+
+    props.regex.pattern = str.substr(0, str.length - 1)
+    props.regex.flags = flags
+    props.loc.end = this.curToken.loc.end
+    return new Literal(props)
   }
 
   parseIdentifier(autoParseUpdateExpression = false) {

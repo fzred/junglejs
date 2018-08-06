@@ -368,3 +368,13 @@ export class ThisExpression extends Expression {
     this.type = 'ThisExpression'
   }
 }
+
+export class ConditionalExpression extends Expression {
+  constructor(props) {
+    super(props)
+    this.type = 'ConditionalExpression'
+    this.test = props.test
+    this.alternate = props.alternate
+    this.consequent = props.consequent
+  }
+}

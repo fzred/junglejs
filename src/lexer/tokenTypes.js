@@ -1,5 +1,5 @@
 export default {
-  BooleanLiteral: 'BooleanLiteral',
+  BOOLEAN: 'BOOLEAN',
   EOF: 'EOF',
   IDENTIFIER: 'IDENTIFIER',
   Keyword: 'Keyword',

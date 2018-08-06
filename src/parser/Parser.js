@@ -40,6 +40,7 @@ import {
   ForOfStatement,
   ThisExpression,
   UnaryExpression,
+  ConditionalExpression,
 } from './estree'
 
 function judgeAST(token, value) {
@@ -423,6 +424,8 @@ class Parser {
         return this.parseMemberExpression.bind(this, false)
       } else if (token.value === '[') {
         return this.parseMemberExpression.bind(this, true)
+      } else if (token.value === '?') {
+        return this.parseConditionalExpression.bind(this)
       }
     }
   }
@@ -470,6 +473,25 @@ class Parser {
     } else if (token.type === tokenTypes.IDENTIFIER) {
       return this.parseIdentifier.bind(this, true)
     }
+  }
+
+  parseConditionalExpression(leftExp) {
+    const props = {
+      loc: deepCopy(leftExp.loc),
+      test: leftExp,
+      consequent: null,
+      alternate: null,
+    }
+    this.readToken()
+    props.consequent = this.parseExpression()
+    if (!judgeAST(this.curToken, ':')) {
+      // TODO 语法错误处理
+      throw 'syntax error'
+    }
+    this.readToken()
+    props.alternate = this.parseExpression(-1, false)
+    props.loc.end = this.curToken.loc.end
+    return new ConditionalExpression(props)
   }
 
   parseRegex() {

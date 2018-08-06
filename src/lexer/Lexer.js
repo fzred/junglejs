@@ -392,6 +392,7 @@ class Lexer {
       case '~':
       case '\\':
       case ';':
+      case '?':
         return this.createToken(tokenTypes.Punctuator, this.char)
       // TODO
       default:
@@ -411,7 +412,7 @@ class Lexer {
             identifier += this.char
           }
           if (identifier === 'true' || identifier === 'false') {
-            return this.createToken(tokenTypes.BooleanLiteral, identifier)
+            return this.createToken(tokenTypes.BOOLEAN, identifier)
           }
           if (keywords.indexOf(identifier) > -1) {
             // 关键字处理

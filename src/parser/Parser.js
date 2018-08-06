@@ -41,6 +41,7 @@ import {
   ThisExpression,
   UnaryExpression,
   ConditionalExpression,
+  NewExpression,
 } from './estree'
 
 function judgeAST(token, value) {
@@ -227,11 +228,16 @@ class Parser {
     this.readToken()
     while (!judgeAST(this.curToken, ')')) {
       argument.push(this.parseExpression())
-      if (judgeAST(this.curToken, ',')) {
+      if (judgeAST(this.curToken, ')')) {
+        break
+      } else if (judgeAST(this.curToken, ',')) {
+        this.readToken()
         if (judgeAST(this.nextToken, ')')) {
-          // TODO 语法错误处理
-          throw 'syntax error'
+          this.readToken()
+          break
         }
+      } else {
+        throw 'syntax error'
       }
     }
     return new CallExpression({
@@ -462,6 +468,8 @@ class Parser {
           }
           return exp
         }.bind(this)
+      } else if (token.value === 'new') {
+        return this.parseNewExpression.bind(this)
       }
     } else if (
       [tokenTypes.NUMBER, tokenTypes.STRING, tokenTypes.BOOLEAN].indexOf(
@@ -473,6 +481,35 @@ class Parser {
     } else if (token.type === tokenTypes.IDENTIFIER) {
       return this.parseIdentifier.bind(this, true)
     }
+  }
+
+  parseNewExpression() {
+    const props = {
+      loc: deepCopy(this.curToken.loc),
+      callee: null,
+      arguments: [],
+    }
+    this.readToken()
+    props.callee = this.parseExpression(-1, true, true)
+    if (judgeAST(this.curToken, '(')) {
+      this.readToken()
+      while (!judgeAST(this.curToken, ')')) {
+        props.arguments.push(this.parseExpression())
+        if (judgeAST(this.curToken, ')')) {
+          break
+        } else if (judgeAST(this.curToken, ',')) {
+          this.readToken()
+          if (judgeAST(this.nextToken, ')')) {
+            this.readToken()
+            break
+          }
+        } else {
+          throw 'syntax error'
+        }
+      }
+    }
+    props.loc.end = this.curToken.loc.end
+    return new NewExpression(props)
   }
 
   parseConditionalExpression(leftExp) {
@@ -689,13 +726,17 @@ class Parser {
     )
   }
 
-  parseExpression(precedence = -1, autoReadNext = true) {
+  parseExpression(precedence = -1, autoReadNext = true, isNewExpress = false) {
     let letExp = this.getPrefixParseFn(this.curToken)()
     if (
       this.parsePathClosest('ForInit') &&
       this.nextToken.type === tokenTypes.Keyword &&
       ['in', 'of'].indexOf(this.nextToken.value) > -1
     ) {
+      this.readToken()
+      return letExp
+    }
+    if (isNewExpress && this.nextToken.value === '(') {
       this.readToken()
       return letExp
     }

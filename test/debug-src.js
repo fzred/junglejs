@@ -167,6 +167,10 @@ const jungle = require('../src').default
 // jungle(fs.readFileSync(path.join(__dirname, './string.js')).toString())
 // jungle(fs.readFileSync(path.join(__dirname, './regex.js')).toString())
 
+// jungle(`
+// 1==1?true:false;
+// `)
+
 jungle(`
-1==1?true:false;
+new a(a,d,)
 `)

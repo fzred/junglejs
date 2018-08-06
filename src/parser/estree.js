@@ -378,3 +378,12 @@ export class ConditionalExpression extends Expression {
     this.consequent = props.consequent
   }
 }
+
+export class NewExpression extends Expression {
+  constructor(props) {
+    super(props)
+    this.type = 'NewExpression'
+    this.callee = props.callee
+    this.arguments = props.arguments
+  }
+}

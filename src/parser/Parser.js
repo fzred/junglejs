@@ -42,6 +42,7 @@ import {
   UnaryExpression,
   ConditionalExpression,
   NewExpression,
+  SequenceExpression,
 } from './estree'
 
 function judgeAST(token, value) {
@@ -94,7 +95,7 @@ class Parser {
     }
     const precedence = this.curTokenPrecedence
     this.readToken()
-    props.argument = this.parseExpression(precedence, false)
+    props.argument = this.parseExpression({ precedence, autoReadNext: false })
     props.loc.end = this.curToken.loc.end
     return new UnaryExpression(props)
   }
@@ -197,7 +198,7 @@ class Parser {
       loc: deepCopy(leftExp.loc),
     }
     this.readToken()
-    props.right = this.parseExpression(-1, false)
+    props.right = this.parseExpression({ autoReadNext: false })
     props.loc.end = this.curToken.loc.end
     return new AssignmentExpression(props)
   }
@@ -211,7 +212,7 @@ class Parser {
     const operator = this.curToken.value
     const precedence = this.curTokenPrecedence
     this.readToken()
-    const rightExp = this.parseExpression(precedence, false)
+    const rightExp = this.parseExpression({ precedence, autoReadNext: false })
     return new BinaryExpression({
       left: leftExp,
       operator,
@@ -369,6 +370,8 @@ class Parser {
           return 2
         case '...':
           return 1
+        case ',':
+          return 0
       }
     }
     return -1
@@ -432,6 +435,8 @@ class Parser {
         return this.parseMemberExpression.bind(this, true)
       } else if (token.value === '?') {
         return this.parseConditionalExpression.bind(this)
+      } else if (token.value === ',') {
+        return this.parseSequenceExpression.bind(this)
       }
     }
   }
@@ -483,6 +488,24 @@ class Parser {
     }
   }
 
+  parseSequenceExpression(leftExp) {
+    const props = {
+      expressions: [leftExp],
+      loc: deepCopy(leftExp.loc),
+    }
+    const precedence = this.curTokenPrecedence
+    if (leftExp.type === 'SequenceExpression') {
+      props.expressions = [...leftExp.expressions]
+    }
+
+    this.readToken()
+    props.expressions.push(
+      this.parseExpression({ precedence, autoReadNext: false })
+    )
+    props.loc.end = this.curToken.loc.end
+    return new SequenceExpression(props)
+  }
+
   parseNewExpression() {
     const props = {
       loc: deepCopy(this.curToken.loc),
@@ -490,7 +513,7 @@ class Parser {
       arguments: [],
     }
     this.readToken()
-    props.callee = this.parseExpression(-1, true, true)
+    props.callee = this.parseExpression({ isNewExpress: true })
     if (judgeAST(this.curToken, '(')) {
       this.readToken()
       while (!judgeAST(this.curToken, ')')) {
@@ -526,7 +549,7 @@ class Parser {
       throw 'syntax error'
     }
     this.readToken()
-    props.alternate = this.parseExpression(-1, false)
+    props.alternate = this.parseExpression({ autoReadNext: false })
     props.loc.end = this.curToken.loc.end
     return new ConditionalExpression(props)
   }
@@ -675,7 +698,7 @@ class Parser {
       loc: deepCopy(leftExp.loc),
     }
     this.readToken()
-    props.right = this.parseExpression(-1, false)
+    props.right = this.parseExpression({ autoReadNext: false })
     props.loc.end = this.curToken.loc.end
     return new LogicalExpression(props)
   }
@@ -726,7 +749,11 @@ class Parser {
     )
   }
 
-  parseExpression(precedence = -1, autoReadNext = true, isNewExpress = false) {
+  parseExpression({
+    precedence = -1,
+    autoReadNext = true,
+    isNewExpress = false,
+  } = {}) {
     let letExp = this.getPrefixParseFn(this.curToken)()
     if (
       this.parsePathClosest('ForInit') &&

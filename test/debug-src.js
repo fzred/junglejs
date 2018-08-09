@@ -171,6 +171,14 @@ const jungle = require('../src').default
 // 1==1?true:false;
 // `)
 
-jungle(`
-new a(a,d,)
-`)
+// jungle(`
+// new a(a,d,)
+// `)
+
+// jungle(`
+// 1+3*3+(3+3)
+// `)
+
+// jungle(`
+// 1,2,3+33,a()+3,f;
+// `)

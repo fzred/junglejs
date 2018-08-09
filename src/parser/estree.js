@@ -387,3 +387,11 @@ export class NewExpression extends Expression {
     this.arguments = props.arguments
   }
 }
+
+export class SequenceExpression extends Expression {
+  constructor(props) {
+    super(props)
+    this.type = 'SequenceExpression'
+    this.expressions = props.expressions
+  }
+}
